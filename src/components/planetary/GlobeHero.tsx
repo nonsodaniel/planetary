@@ -177,17 +177,17 @@ export function GlobeHero() {
     }
   }, []);
 
-  const handleMouseEnter = useCallback(() => {
-    if (!globeRef.current) return;
-    const controls = globeRef.current.controls();
-    if (controls) controls.enableZoom = true;
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    if (!globeRef.current) return;
-    const controls = globeRef.current.controls();
-    if (controls) controls.enableZoom = false;
-  }, []);
+  // Block OrbitControls from ever seeing wheel events on the landing globe.
+  // We call stopImmediatePropagation (not preventDefault), so the event still
+  // bubbles to the page for normal scrolling.
+  useEffect(() => {
+    if (!ready || !globeRef.current) return;
+    const canvas = globeRef.current.renderer()?.domElement as HTMLElement | undefined;
+    if (!canvas) return;
+    const block = (e: Event) => { e.stopImmediatePropagation(); };
+    canvas.addEventListener("wheel", block, { capture: true, passive: true });
+    return () => canvas.removeEventListener("wheel", block, true);
+  }, [ready]);
 
   // Tooltip positioning — clamp so it stays inside the viewport
   const tooltipStyle = useMemo(() => {
@@ -218,8 +218,6 @@ export function GlobeHero() {
   return (
     <div
       className="relative w-full h-full"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
       onMouseMove={(e) => {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         setMouse({ x: e.clientX - rect.left, y: e.clientY - rect.top });

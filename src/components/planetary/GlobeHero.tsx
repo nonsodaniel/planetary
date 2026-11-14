@@ -31,7 +31,7 @@ export function GlobeHero() {
 
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.4;
-    controls.enableZoom = true;
+    controls.enableZoom = false; // only enabled while cursor is inside the globe area
     controls.minDistance = 100;
     controls.maxDistance = 600;
     controls.enablePan = false;
@@ -80,6 +80,19 @@ export function GlobeHero() {
     }
   }, []);
 
+  // Only allow scroll-to-zoom while the cursor is inside the globe section
+  const handleMouseEnter = useCallback(() => {
+    if (!globeRef.current) return;
+    const controls = globeRef.current.controls();
+    if (controls) controls.enableZoom = true;
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    if (!globeRef.current) return;
+    const controls = globeRef.current.controls();
+    if (controls) controls.enableZoom = false;
+  }, []);
+
   const pointsData = DEMO_PROJECTS.map((p) => ({
     ...p,
     _size: selected?.id === p.id ? 1.1 : hovered?.id === p.id ? 0.9 : 0.6,
@@ -94,7 +107,11 @@ export function GlobeHero() {
   }));
 
   return (
-    <div className="relative w-full h-full">
+    <div
+      className="relative w-full h-full"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Loading shimmer */}
       {!ready && (
         <div className="absolute inset-0 flex items-center justify-center">

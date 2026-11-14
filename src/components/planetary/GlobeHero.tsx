@@ -113,11 +113,14 @@ function SpaceBackground() {
 export function GlobeHero() {
   const globeRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
+  const [mounted, setMounted] = useState(false); // gate for client-only content
   const [hovered, setHovered] = useState<DemoProject | null>(null);
   const [selected, setSelected] = useState<DemoProject | null>(null);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
   const selectedRef = useRef<DemoProject | null>(null);
   const isHoveringPin = useRef(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setReady(true), 300);
@@ -223,8 +226,8 @@ export function GlobeHero() {
         setMouse({ x: e.clientX - rect.left, y: e.clientY - rect.top });
       }}
     >
-      {/* Space backdrop — stars, nebulas, planets */}
-      <SpaceBackground />
+      {/* Space backdrop — stars, nebulas, planets (client-only to avoid hydration mismatch) */}
+      {mounted && <SpaceBackground />}
 
       {/* Loading shimmer */}
       {!ready && (

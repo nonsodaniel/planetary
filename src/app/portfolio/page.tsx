@@ -49,14 +49,14 @@ export default function PortfolioPage() {
 
       {/* Portfolio summary */}
       <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="rounded-xl border border-zinc-700/50 bg-zinc-900/60 p-4">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
           <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Total CO₂ Impact</div>
           <div className="font-mono text-2xl font-bold text-emerald-400">
             {fmtNum(totalCO2, 1)}
           </div>
           <div className="text-xs text-zinc-600 mt-0.5">tCO₂ across 10 years</div>
         </div>
-        <div className="rounded-xl border border-zinc-700/50 bg-zinc-900/60 p-4">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
           <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Avg Impact Score</div>
           <div className={`font-mono text-2xl font-bold ${
             avgScore >= 70 ? "text-amber-400" :
@@ -67,7 +67,7 @@ export default function PortfolioPage() {
           </div>
           <div className="text-xs text-zinc-600 mt-0.5">/ 100 Planetary Score</div>
         </div>
-        <div className="rounded-xl border border-zinc-700/50 bg-zinc-900/60 p-4">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
           <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Greenwashing Flags</div>
           <div className={`font-mono text-2xl font-bold ${greenwashCount > 0 ? "text-red-400" : "text-emerald-400"}`}>
             {greenwashCount}
@@ -91,7 +91,7 @@ export default function PortfolioPage() {
               transition={{ delay: i * 0.06 }}
             >
               <Link href={sim ? `/simulate/${sim.id}?intervention=${intervention.id}&demo=1` : "/"}>
-                <div className="rounded-xl border border-zinc-700/50 bg-zinc-900/60 hover:border-zinc-600 hover:bg-zinc-900 transition-all p-4 group cursor-pointer">
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900 hover:border-zinc-600 hover:bg-zinc-900 transition-all p-4 group cursor-pointer">
                   <div className="flex items-start gap-4">
                     {/* Score */}
                     <div className="text-center flex-shrink-0 w-16">

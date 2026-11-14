@@ -162,7 +162,7 @@ export function InterventionForm() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={`${interventionLabel(type)} — Region`}
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                 />
               </div>
 
@@ -174,7 +174,7 @@ export function InterventionForm() {
                   value={region}
                   onChange={(e) => setRegion(e.target.value)}
                   placeholder="e.g. Amazon Basin"
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                 />
               </div>
 
@@ -186,7 +186,7 @@ export function InterventionForm() {
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                   placeholder="e.g. Brazil"
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                 />
               </div>
 
@@ -198,7 +198,7 @@ export function InterventionForm() {
                   value={lat}
                   onChange={(e) => setLat(e.target.value)}
                   placeholder="e.g. -3.47"
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                 />
               </div>
 
@@ -210,7 +210,7 @@ export function InterventionForm() {
                   value={lng}
                   onChange={(e) => setLng(e.target.value)}
                   placeholder="e.g. -60.02"
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                 />
               </div>
 
@@ -222,7 +222,7 @@ export function InterventionForm() {
                     value={area}
                     onChange={(e) => setArea(e.target.value)}
                     placeholder="e.g. 100000"
-                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                   />
                 </div>
               )}
@@ -235,7 +235,7 @@ export function InterventionForm() {
                     value={capacityMW}
                     onChange={(e) => setCapacityMW(e.target.value)}
                     placeholder="e.g. 500"
-                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                   />
                 </div>
               )}
@@ -248,7 +248,7 @@ export function InterventionForm() {
                   value={investment}
                   onChange={(e) => setInvestment(e.target.value)}
                   placeholder="e.g. 50"
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                 />
               </div>
 
@@ -262,7 +262,7 @@ export function InterventionForm() {
                   value={claimedCO2}
                   onChange={(e) => setClaimedCO2(e.target.value)}
                   placeholder="e.g. 500000"
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                 />
               </div>
 
@@ -274,7 +274,7 @@ export function InterventionForm() {
                   onChange={(e) => setTimeline(e.target.value)}
                   min="5"
                   max="50"
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                 />
               </div>
 
@@ -287,7 +287,7 @@ export function InterventionForm() {
                   value={certs}
                   onChange={(e) => setCerts(e.target.value)}
                   placeholder="e.g. VCS, Gold Standard, CCBA"
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                 />
               </div>
             </div>

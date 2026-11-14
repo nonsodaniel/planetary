@@ -302,7 +302,7 @@ export function InterventionForm() {
               type="submit"
               disabled={loading || !region || !country || !investment}
               size="lg"
-              className="w-full gap-2 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-semibold"
+              variant="primary" className="w-full gap-2"
             >
               {loading ? (
                 <>
@@ -335,7 +335,7 @@ export function InterventionForm() {
               const sim = DEMO_SIMULATIONS.find((s) => s.intervention_id === intervention.id);
               const scoreColor =
                 (sim?.planetary_impact_score ?? 0) >= 75 ? "text-amber-400" :
-                (sim?.planetary_impact_score ?? 0) >= 45 ? "text-cyan-400" :
+                (sim?.planetary_impact_score ?? 0) >= 45 ? "text-blue-400" :
                 "text-red-400";
 
               const gwRisk = sim?.claim_verification?.greenwashing_risk ?? "none";

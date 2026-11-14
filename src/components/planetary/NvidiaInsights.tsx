@@ -98,7 +98,7 @@ export function NvidiaInsights({ nim, cosmos, optimization }: NvidiaInsightsProp
                 {snap.surface_temp_delta !== 0 && (
                   <div className="mt-1 text-xs font-mono">
                     <span className="text-zinc-600">ΔT: </span>
-                    <span className={snap.surface_temp_delta < 0 ? "text-cyan-400" : "text-amber-400"}>
+                    <span className={snap.surface_temp_delta < 0 ? "text-blue-400" : "text-amber-400"}>
                       {snap.surface_temp_delta > 0 ? "+" : ""}{snap.surface_temp_delta.toFixed(3)}°C
                     </span>
                     {snap.albedo_change !== 0 && (

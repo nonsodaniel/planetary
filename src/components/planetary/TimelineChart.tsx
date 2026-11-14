@@ -35,12 +35,12 @@ const CustomTooltip = ({
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-xl text-xs">
-      <div className="text-slate-400 mb-2 font-mono">Year {label}</div>
+    <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-xl text-xs">
+      <div className="text-zinc-400 mb-2 font-mono">Year {label}</div>
       {payload.map((entry) => (
         <div key={entry.name} className="flex justify-between gap-4">
           <span style={{ color: entry.color }}>{entry.name}</span>
-          <span className="font-mono text-slate-200">{fmtNum(entry.value)} tCO₂</span>
+          <span className="font-mono text-zinc-200">{fmtNum(entry.value)} tCO₂</span>
         </div>
       ))}
     </div>
@@ -64,14 +64,14 @@ export function TimelineChart({ yearly, claimedAnnual }: TimelineChartProps) {
     <div className="w-full">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-slate-200">10-Year CO₂ Trajectory</h3>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h3 className="text-sm font-semibold text-zinc-200">10-Year CO₂ Trajectory</h3>
+          <p className="text-xs text-zinc-500 mt-0.5">
             Simulated annual carbon impact via NVIDIA NIM
           </p>
         </div>
         {claimedAnnual && (
           <div className="text-right">
-            <div className="text-xs text-slate-500">Claimed/year</div>
+            <div className="text-xs text-zinc-500">Claimed/year</div>
             <div className="font-mono text-xs text-amber-400">{fmtNum(claimedAnnual)} tCO₂</div>
           </div>
         )}
@@ -145,8 +145,8 @@ export function TimelineChart({ yearly, claimedAnnual }: TimelineChartProps) {
       </ResponsiveContainer>
 
       {/* Cumulative chart */}
-      <div className="mt-4 pt-4 border-t border-slate-800">
-        <div className="text-xs text-slate-500 mb-2">Cumulative 10-Year Impact</div>
+      <div className="mt-4 pt-4 border-t border-zinc-800">
+        <div className="text-xs text-zinc-500 mb-2">Cumulative 10-Year Impact</div>
         <ResponsiveContainer width="100%" height={120}>
           <AreaChart data={data} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
             <defs>

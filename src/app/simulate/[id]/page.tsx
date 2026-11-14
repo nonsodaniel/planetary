@@ -16,8 +16,9 @@ import { RiskMatrix } from "@/components/planetary/RiskMatrix";
 import { MetricsGrid } from "@/components/planetary/MetricsGrid";
 import { SimulationStages } from "@/components/planetary/SimulationStages";
 import { NvidiaInsights } from "@/components/planetary/NvidiaInsights";
+import { CosmosWorldView } from "@/components/planetary/CosmosWorldView";
 import { usePlanetaryStore } from "@/lib/planetary/store";
-import { DEMO_INTERVENTIONS } from "@/lib/planetary/demos";
+import { DEMO_INTERVENTIONS, DEMO_SIMULATIONS } from "@/lib/planetary/demos";
 import {
   interventionLabel,
   scoreTierMeta,
@@ -32,9 +33,9 @@ const POLL_INTERVAL = 2000; // 2s
 function SkeletonPanel() {
   return (
     <div className="animate-pulse space-y-3">
-      <div className="h-4 bg-slate-800 rounded w-3/4" />
-      <div className="h-4 bg-slate-800 rounded w-1/2" />
-      <div className="h-32 bg-slate-800 rounded" />
+      <div className="h-4 bg-zinc-800 rounded w-3/4" />
+      <div className="h-4 bg-zinc-800 rounded w-1/2" />
+      <div className="h-32 bg-zinc-800 rounded" />
     </div>
   );
 }
@@ -57,11 +58,16 @@ export default function SimulatePage() {
       ? (interventions[interventionId] ?? DEMO_INTERVENTIONS.find((i) => i.id === interventionId) ?? null)
       : null;
 
-  // Load from store first
+  // Load from store; fall back to pre-computed demos for demo mode
   useEffect(() => {
     const stored = simulations[simId];
-    if (stored) setSim(stored);
-  }, [simId, simulations]);
+    if (stored) {
+      setSim(stored);
+    } else if (isDemo) {
+      const demoSim = DEMO_SIMULATIONS.find((s) => s.id === simId);
+      if (demoSim) setSim(demoSim);
+    }
+  }, [simId, simulations, isDemo]);
 
   // Poll for updates if simulation is running
   const fetchSim = useCallback(async () => {
@@ -108,12 +114,12 @@ export default function SimulatePage() {
       {/* Top bar */}
       <div className="flex items-start justify-between mb-6 gap-4">
         <div className="flex items-start gap-4">
-          <Link href="/" className="mt-1 p-1.5 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-slate-200 transition-colors">
+          <Link href="/" className="mt-1 p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200 transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg font-semibold text-slate-100">
+              <h1 className="text-lg font-semibold text-zinc-100">
                 {intervention?.name ?? "Climate Simulation"}
               </h1>
               {intervention && (
@@ -133,7 +139,7 @@ export default function SimulatePage() {
               )}
             </div>
             {intervention && (
-              <div className="text-sm text-slate-500 mt-0.5">
+              <div className="text-sm text-zinc-500 mt-0.5">
                 {intervention.region}, {intervention.country}
                 {intervention.area_hectares && ` · ${fmtNum(intervention.area_hectares, 0)} ha`}
                 {intervention.capacity_mw && ` · ${intervention.capacity_mw} MW`}
@@ -146,8 +152,8 @@ export default function SimulatePage() {
         {/* Status indicator */}
         <div className="flex items-center gap-2 text-xs flex-shrink-0">
           {isRunning && (
-            <div className="flex items-center gap-1.5 text-cyan-400 font-mono">
-              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            <div className="flex items-center gap-1.5 text-blue-400 font-mono">
+              <div className="w-2 h-2 rounded-full bg-blue-400" />
               Simulating...
             </div>
           )}
@@ -171,8 +177,8 @@ export default function SimulatePage() {
         {/* Left column: Score + Stages + Certifications */}
         <div className="col-span-12 lg:col-span-3 space-y-5">
           {/* Impact Score */}
-          <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-5">
-            <div className="text-xs text-slate-500 uppercase tracking-wider mb-4">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-4">
               Planetary Impact Score™
             </div>
             {isComplete && sim ? (
@@ -187,7 +193,7 @@ export default function SimulatePage() {
           </div>
 
           {/* Pipeline */}
-          <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-5">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
             {sim ? (
               <SimulationStages
                 stages={sim.stages_log}
@@ -201,8 +207,8 @@ export default function SimulatePage() {
 
           {/* Certifications */}
           {intervention?.certifications && intervention.certifications.length > 0 && (
-            <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-4">
-              <div className="text-xs text-slate-500 uppercase tracking-wider mb-3">Certifications</div>
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+              <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Certifications</div>
               <div className="flex flex-wrap gap-2">
                 {intervention.certifications.map((cert) => (
                   <Badge key={cert} variant="secondary" className="text-xs">{cert}</Badge>
@@ -215,7 +221,7 @@ export default function SimulatePage() {
         {/* Center: Timeline + Metrics */}
         <div className="col-span-12 lg:col-span-6 space-y-5">
           {/* Timeline chart */}
-          <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-5">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
             {isComplete && sim?.yearly_metrics.length ? (
               <TimelineChart
                 yearly={sim.yearly_metrics}
@@ -227,8 +233,8 @@ export default function SimulatePage() {
           </div>
 
           {/* Key metrics grid */}
-          <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-5">
-            <div className="text-xs text-slate-500 uppercase tracking-wider mb-4">Key Metrics</div>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-4">Key Metrics</div>
             {isComplete && sim && intervention ? (
               <MetricsGrid simulation={sim} intervention={intervention} />
             ) : (
@@ -236,25 +242,32 @@ export default function SimulatePage() {
             )}
           </div>
 
+          {/* Cosmos World View */}
+          {isComplete && sim && (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+              <CosmosWorldView cosmos={sim.cosmos_world} />
+            </div>
+          )}
+
           {/* Comparable projects */}
           {isComplete && sim && sim.comparable_projects.length > 0 && (
-            <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-5">
-              <div className="text-xs text-slate-500 uppercase tracking-wider mb-4">Comparable Projects</div>
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+              <div className="text-xs text-zinc-500 uppercase tracking-wider mb-4">Comparable Projects</div>
               <div className="space-y-2.5">
                 {sim.comparable_projects.map((p, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs py-2 border-b border-slate-800 last:border-0">
+                  <div key={i} className="flex items-center justify-between text-xs py-2 border-b border-zinc-800 last:border-0">
                     <div>
-                      <div className="text-slate-300 font-medium">{p.name}</div>
-                      <div className="text-slate-600">{p.location}</div>
+                      <div className="text-zinc-300 font-medium">{p.name}</div>
+                      <div className="text-zinc-600">{p.location}</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-mono text-slate-300">{fmtNum(p.co2_annual_tons, 0)} tCO₂/yr</div>
-                      <div className="text-slate-600">${p.cost_per_ton_usd}/ton</div>
+                      <div className="font-mono text-zinc-300">{fmtNum(p.co2_annual_tons, 0)} tCO₂/yr</div>
+                      <div className="text-zinc-600">${p.cost_per_ton_usd}/ton</div>
                     </div>
                     {p.impact_score > 0 && (
                       <div className={`w-10 text-center font-mono font-bold text-lg ${
                         p.impact_score >= 70 ? "text-amber-400" :
-                        p.impact_score >= 50 ? "text-cyan-400" :
+                        p.impact_score >= 50 ? "text-blue-400" :
                         "text-red-400"
                       }`}>
                         {p.impact_score}
@@ -271,8 +284,8 @@ export default function SimulatePage() {
         <div className="col-span-12 lg:col-span-3 space-y-5">
           {/* Claim verification */}
           {isComplete && sim?.claim_verification && (
-            <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-5">
-              <div className="text-xs text-slate-500 uppercase tracking-wider mb-4">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+              <div className="text-xs text-zinc-500 uppercase tracking-wider mb-4">
                 Claim Verification
               </div>
               <ClaimVerifier verification={sim.claim_verification} />
@@ -280,8 +293,8 @@ export default function SimulatePage() {
           )}
 
           {/* Risk matrix */}
-          <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-5">
-            <div className="text-xs text-slate-500 uppercase tracking-wider mb-4">Risk Assessment</div>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-4">Risk Assessment</div>
             {isComplete && sim ? (
               <RiskMatrix risks={sim.risks} overallRisk={sim.overall_risk} />
             ) : (
@@ -290,8 +303,8 @@ export default function SimulatePage() {
           </div>
 
           {/* NVIDIA Model Details */}
-          <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-5">
-            <div className="text-xs text-slate-500 uppercase tracking-wider mb-4">NVIDIA Insights</div>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-4">NVIDIA Insights</div>
             {isComplete && sim ? (
               <NvidiaInsights
                 nim={sim.nim_analysis}
@@ -306,14 +319,14 @@ export default function SimulatePage() {
       </div>
 
       {/* Footer attribution */}
-      <div className="mt-8 pt-6 border-t border-slate-800/40 flex flex-wrap gap-4 justify-between items-center text-xs text-slate-600">
+      <div className="mt-8 pt-6 border-t border-zinc-800/40 flex flex-wrap gap-4 justify-between items-center text-xs text-zinc-600">
         <div className="font-mono space-x-3">
           <span>NVIDIA NIM</span>
-          <span className="text-slate-700">·</span>
+          <span className="text-zinc-700">·</span>
           <span>Cosmos World Foundation Model</span>
-          <span className="text-slate-700">·</span>
+          <span className="text-zinc-700">·</span>
           <span>cuOpt</span>
-          <span className="text-slate-700">·</span>
+          <span className="text-zinc-700">·</span>
           <span>Cala Knowledge API</span>
         </div>
         {sim?.completed_at && (

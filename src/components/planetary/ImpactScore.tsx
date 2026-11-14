@@ -58,7 +58,6 @@ export function ImpactScore({ score, tier, breakdown, className }: ImpactScorePr
             animate={{ strokeDashoffset: dashOffset }}
             transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
             style={{
-              filter: `drop-shadow(0 0 8px ${scoreColor}66)`,
             }}
           />
           {/* Tick marks */}
@@ -91,7 +90,7 @@ export function ImpactScore({ score, tier, breakdown, className }: ImpactScorePr
           >
             {score}
           </motion.div>
-          <div className="text-xs text-slate-500 uppercase tracking-wider mt-0.5">
+          <div className="text-xs text-zinc-500 uppercase tracking-wider mt-0.5">
             / 100
           </div>
         </div>
@@ -125,12 +124,12 @@ export function ImpactScore({ score, tier, breakdown, className }: ImpactScorePr
               transition={{ delay: 0.6 + i * 0.08 }}
             >
               <div className="flex justify-between items-center mb-1">
-                <span className="text-xs text-slate-400">{item.label}</span>
-                <span className="text-xs font-mono text-slate-300">
-                  {value}<span className="text-slate-600">/{item.max}</span>
+                <span className="text-xs text-zinc-400">{item.label}</span>
+                <span className="text-xs font-mono text-zinc-300">
+                  {value}<span className="text-zinc-600">/{item.max}</span>
                 </span>
               </div>
-              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                 <motion.div
                   className="h-full rounded-full"
                   style={{
@@ -150,10 +149,10 @@ export function ImpactScore({ score, tier, breakdown, className }: ImpactScorePr
       </div>
 
       {/* Total */}
-      <div className="mt-4 w-full pt-3 border-t border-slate-800 flex justify-between items-center">
-        <span className="text-xs text-slate-500 uppercase tracking-wider">Total Score</span>
+      <div className="mt-4 w-full pt-3 border-t border-zinc-800 flex justify-between items-center">
+        <span className="text-xs text-zinc-500 uppercase tracking-wider">Total Score</span>
         <span className={cn("font-mono font-semibold text-lg", tierMeta.color)}>
-          {breakdown.total}<span className="text-slate-600 text-sm">/100</span>
+          {breakdown.total}<span className="text-zinc-600 text-sm">/100</span>
         </span>
       </div>
     </div>

@@ -16,7 +16,7 @@ function Metric({
   label,
   value,
   unit,
-  color = "text-slate-200",
+  color = "text-zinc-200",
   delay = 0,
   note,
 }: {
@@ -32,14 +32,14 @@ function Metric({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="bg-slate-900/60 rounded-xl border border-slate-800/60 p-4"
+      className="bg-zinc-900 rounded-lg border border-zinc-800 p-4"
     >
-      <div className="text-xs text-slate-500 mb-1.5 uppercase tracking-wider">{label}</div>
+      <div className="text-xs text-zinc-500 mb-1.5 uppercase tracking-wider">{label}</div>
       <div className={cn("font-mono text-xl font-bold", color)}>
         {value}
-        {unit && <span className="text-sm font-normal text-slate-500 ml-1">{unit}</span>}
+        {unit && <span className="text-sm font-normal text-zinc-500 ml-1">{unit}</span>}
       </div>
-      {note && <div className="text-xs text-slate-600 mt-1">{note}</div>}
+      {note && <div className="text-xs text-zinc-600 mt-1">{note}</div>}
     </motion.div>
   );
 }
@@ -71,7 +71,7 @@ export function MetricsGrid({ simulation, intervention }: MetricsGridProps) {
         unit="/tCO₂"
         color={
           simulation.cost_per_ton_usd < 50 ? "text-emerald-400" :
-          simulation.cost_per_ton_usd < 200 ? "text-cyan-400" :
+          simulation.cost_per_ton_usd < 200 ? "text-blue-400" :
           "text-amber-400"
         }
         delay={0.08}
@@ -89,7 +89,7 @@ export function MetricsGrid({ simulation, intervention }: MetricsGridProps) {
         label="vs Category Avg"
         value={`${simulation.vs_category_avg_pct >= 0 ? "+" : ""}${simulation.vs_category_avg_pct.toFixed(0)}`}
         unit="pts"
-        color={simulation.vs_category_avg_pct >= 0 ? "text-cyan-400" : "text-amber-400"}
+        color={simulation.vs_category_avg_pct >= 0 ? "text-blue-400" : "text-amber-400"}
         delay={0.24}
         note="Planetary Impact Score"
       />
@@ -98,7 +98,7 @@ export function MetricsGrid({ simulation, intervention }: MetricsGridProps) {
         label="Biodiversity Index"
         value={Math.round(avgBio).toString()}
         unit="/ 100"
-        color="text-purple-400"
+        color="text-zinc-300"
         delay={0.32}
         note="10-year average"
       />
@@ -107,7 +107,7 @@ export function MetricsGrid({ simulation, intervention }: MetricsGridProps) {
         label="Temperature Delta"
         value={tempDelta <= 0 ? tempDelta.toFixed(2) : `+${tempDelta.toFixed(2)}`}
         unit="°C"
-        color={tempDelta <= 0 ? "text-cyan-400" : "text-amber-400"}
+        color={tempDelta <= 0 ? "text-blue-400" : "text-amber-400"}
         delay={0.4}
         note="Year 10 local effect"
       />

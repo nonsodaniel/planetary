@@ -39,7 +39,7 @@ export function ClaimVerifier({ verification }: ClaimVerifierProps) {
         <div>
           <div className={cn("text-sm font-semibold", cfg.text)}>{cfg.label}</div>
           {isSevere && (
-            <div className="text-xs text-slate-400 mt-0.5">
+            <div className="text-xs text-zinc-400 mt-0.5">
               Project claims <span className={cfg.text}>{(1 / verification.accuracy_ratio).toFixed(1)}×</span> its physics-simulated impact
             </div>
           )}
@@ -48,7 +48,7 @@ export function ClaimVerifier({ verification }: ClaimVerifierProps) {
           <div className={cn("text-lg font-mono font-bold", cfg.text)}>
             {Math.round(verification.accuracy_ratio * 100)}%
           </div>
-          <div className="text-xs text-slate-500">accuracy</div>
+          <div className="text-xs text-zinc-500">accuracy</div>
         </div>
       </motion.div>
 
@@ -57,12 +57,12 @@ export function ClaimVerifier({ verification }: ClaimVerifierProps) {
         {/* Claimed */}
         <div>
           <div className="flex justify-between items-center mb-1.5">
-            <span className="text-xs text-slate-400">Claimed (by proponent)</span>
+            <span className="text-xs text-zinc-400">Claimed (by proponent)</span>
             <span className="text-xs font-mono text-amber-400">
               {fmtNum(verification.claimed_annual_co2_tons)} tCO₂/yr
             </span>
           </div>
-          <div className="h-6 bg-slate-800 rounded-md overflow-hidden">
+          <div className="h-6 bg-zinc-800 rounded-md overflow-hidden">
             <motion.div
               className="h-full bg-amber-500/40 border-r-2 border-amber-400 flex items-center justify-end pr-2"
               style={{ width: `${claimedBar}%` }}
@@ -78,20 +78,20 @@ export function ClaimVerifier({ verification }: ClaimVerifierProps) {
         {/* Simulated */}
         <div>
           <div className="flex justify-between items-center mb-1.5">
-            <span className="text-xs text-slate-400">Simulated (NVIDIA NIM)</span>
-            <span className="text-xs font-mono text-cyan-400">
+            <span className="text-xs text-zinc-400">Simulated (NVIDIA NIM)</span>
+            <span className="text-xs font-mono text-blue-400">
               {fmtNum(verification.simulated_annual_co2_tons)} tCO₂/yr
             </span>
           </div>
-          <div className="h-6 bg-slate-800 rounded-md overflow-hidden">
+          <div className="h-6 bg-zinc-800 rounded-md overflow-hidden">
             <motion.div
-              className="h-full bg-cyan-500/40 border-r-2 border-cyan-400 flex items-center justify-end pr-2"
+              className="h-full bg-blue-500/30 border-r-2 border-blue-400 flex items-center justify-end pr-2"
               initial={{ width: 0 }}
               animate={{ width: `${simulatedBar}%` }}
               transition={{ duration: 0.8, delay: 0.4 }}
             >
               {simulatedBar > 20 && (
-                <span className="text-xs font-mono text-cyan-300">Simulated</span>
+                <span className="text-xs font-mono text-blue-300">Simulated</span>
               )}
             </motion.div>
           </div>
@@ -104,13 +104,13 @@ export function ClaimVerifier({ verification }: ClaimVerifierProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="bg-slate-900 border border-slate-700/50 rounded-lg p-3"
+          className="bg-zinc-900 border border-zinc-700/50 rounded-lg p-3"
         >
-          <div className="text-xs text-slate-500 mb-1">Gap Analysis</div>
-          <div className="font-mono text-sm text-slate-200">
+          <div className="text-xs text-zinc-500 mb-1">Gap Analysis</div>
+          <div className="font-mono text-sm text-zinc-200">
             Project <span className={cfg.text}>overclaims by {verification.discrepancy_pct.toFixed(0)}%</span>
           </div>
-          <div className="text-xs text-slate-500 mt-0.5">
+          <div className="text-xs text-zinc-500 mt-0.5">
             {fmtNum(verification.claimed_annual_co2_tons - verification.simulated_annual_co2_tons)} tCO₂/yr unverifiable
           </div>
         </motion.div>
@@ -119,7 +119,7 @@ export function ClaimVerifier({ verification }: ClaimVerifierProps) {
       {/* Evidence */}
       {verification.evidence.length > 0 && (
         <div>
-          <div className="text-xs text-slate-500 uppercase tracking-wider mb-2">Evidence</div>
+          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Evidence</div>
           <div className="space-y-2">
             {verification.evidence.slice(0, 3).map((e, i) => (
               <motion.div
@@ -127,9 +127,9 @@ export function ClaimVerifier({ verification }: ClaimVerifierProps) {
                 initial={{ opacity: 0, x: -4 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 + i * 0.1 }}
-                className="flex gap-2 text-xs text-slate-400"
+                className="flex gap-2 text-xs text-zinc-400"
               >
-                <span className="text-cyan-500/60 mt-0.5 flex-shrink-0">▸</span>
+                <span className="text-zinc-500 mt-0.5 flex-shrink-0">▸</span>
                 <span>{e}</span>
               </motion.div>
             ))}
@@ -140,13 +140,13 @@ export function ClaimVerifier({ verification }: ClaimVerifierProps) {
       {/* Cala sources */}
       {verification.cala_sources.length > 0 && (
         <div>
-          <div className="text-xs text-slate-500 uppercase tracking-wider mb-2">Sources</div>
+          <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Sources</div>
           <div className="space-y-1.5">
             {verification.cala_sources.slice(0, 2).map((s, i) => (
-              <div key={i} className="rounded-md bg-slate-900 border border-slate-800 p-2.5">
-                <div className="text-xs font-medium text-slate-300">{s.document}</div>
-                <div className="text-xs text-slate-500 mt-1 line-clamp-2">{s.snippet}</div>
-                <div className="text-xs text-cyan-500/50 mt-1 font-mono">via Cala</div>
+              <div key={i} className="rounded-md bg-zinc-900 border border-zinc-800 p-2.5">
+                <div className="text-xs font-medium text-zinc-300">{s.document}</div>
+                <div className="text-xs text-zinc-500 mt-1 line-clamp-2">{s.snippet}</div>
+                <div className="text-xs text-zinc-500 mt-1 font-mono">via Cala</div>
               </div>
             ))}
           </div>

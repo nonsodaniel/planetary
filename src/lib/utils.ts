@@ -41,9 +41,9 @@ export function scoreTierMeta(tier: ScoreTier): {
   const map: Record<ScoreTier, { label: string; color: string; bg: string; border: string }> = {
     platinum: {
       label: "Platinum",
-      color: "text-slate-200",
-      bg: "bg-slate-200/10",
-      border: "border-slate-200/30",
+      color: "text-zinc-200",
+      bg: "bg-zinc-200/10",
+      border: "border-zinc-200/30",
     },
     gold: {
       label: "Gold",
@@ -53,9 +53,9 @@ export function scoreTierMeta(tier: ScoreTier): {
     },
     silver: {
       label: "Silver",
-      color: "text-slate-400",
-      bg: "bg-slate-400/10",
-      border: "border-slate-400/30",
+      color: "text-zinc-400",
+      bg: "bg-zinc-400/10",
+      border: "border-zinc-400/30",
     },
     bronze: {
       label: "Bronze",

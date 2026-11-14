@@ -1,0 +1,22 @@
+# deps
+node_modules/
+
+# build
+.next/
+out/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# cache
+.planetary-cache/
+*.cache
+
+# os
+.DS_Store
+
+# IDE
+.vscode/
+*.swp

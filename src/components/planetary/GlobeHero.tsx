@@ -3,178 +3,269 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { X, ArrowRight, ExternalLink } from "lucide-react";
+import { DEMO_PROJECTS } from "@/lib/planetary/demoProjects";
+import type { DemoProject } from "@/lib/planetary/demoProjects";
 
-// Dynamic import — react-globe.gl uses WebGL, cannot SSR
 const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
 
-interface DemoPoint {
-  id: string;
-  name: string;
-  lat: number;
-  lng: number;
-  score: number;
-  color: string;
-  gwLabel: string;
-  co2: string;
-  investment: string;
-  simId: string;
-  interventionId: string;
-}
-
-const DEMO_POINTS: DemoPoint[] = [
-  {
-    id: "congo",
-    name: "Congo Basin Reforestation",
-    lat: -2.5,
-    lng: 23.8,
-    score: 72,
-    color: "#fbbf24",
-    gwLabel: "Moderate Overclaim",
-    co2: "1.1M tCO₂",
-    investment: "$50M",
-    simId: "demo_sim_congo",
-    interventionId: "demo_congo",
-  },
-  {
-    id: "sahara",
-    name: "Saharan Solar Array — 500MW",
-    lat: 33.2,
-    lng: 9.1,
-    score: 85,
-    color: "#4ade80",
-    gwLabel: "Claim Accurate",
-    co2: "7.2M tCO₂",
-    investment: "$200M",
-    simId: "demo_sim_sahara",
-    interventionId: "demo_sahara",
-  },
-  {
-    id: "kariba",
-    name: "Kariba REDD+ Credits",
-    lat: -16.5,
-    lng: 28.5,
-    score: 32,
-    color: "#f87171",
-    gwLabel: "Greenwashing Detected",
-    co2: "1.1M tCO₂",
-    investment: "$30M",
-    simId: "demo_sim_kariba",
-    interventionId: "demo_kariba",
-  },
-];
-
-interface GlobeHeroProps {
-  onPointClick: (point: DemoPoint) => void;
-}
-
-export function GlobeHero({ onPointClick }: GlobeHeroProps) {
+export function GlobeHero() {
   const globeRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
-  const [hovered, setHovered] = useState<DemoPoint | null>(null);
+  const [hovered, setHovered] = useState<DemoProject | null>(null);
+  const [selected, setSelected] = useState<DemoProject | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setReady(true), 300);
     return () => clearTimeout(timer);
   }, []);
 
-  // Auto-rotate once globe is ready
   useEffect(() => {
     if (!ready || !globeRef.current) return;
     const controls = globeRef.current.controls();
     if (controls) {
       controls.autoRotate = true;
       controls.autoRotateSpeed = 0.4;
-      controls.enableZoom = false;
+      controls.enableZoom = true;
+      controls.minDistance = 100;
+      controls.maxDistance = 600;
+      controls.enablePan = false;
     }
-    // Start centered on Africa
-    globeRef.current.pointOfView({ lat: 5, lng: 20, altitude: 2.2 }, 0);
+    globeRef.current.pointOfView({ lat: 10, lng: 20, altitude: 2.4 }, 0);
   }, [ready]);
 
-  const pointsData = DEMO_POINTS.map((p) => ({
+  const handlePointClick = useCallback((p: any) => {
+    const project = p as DemoProject;
+    setSelected(project);
+    setHovered(null);
+    if (globeRef.current) {
+      const controls = globeRef.current.controls();
+      if (controls) controls.autoRotate = false;
+      globeRef.current.pointOfView(
+        { lat: project.lat - 6, lng: project.lng, altitude: 1.5 },
+        900
+      );
+    }
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setSelected(null);
+    if (globeRef.current) {
+      const controls = globeRef.current.controls();
+      if (controls) {
+        controls.autoRotate = true;
+        globeRef.current.pointOfView({ lat: 10, lng: 20, altitude: 2.4 }, 800);
+      }
+    }
+  }, []);
+
+  const pointsData = DEMO_PROJECTS.map((p) => ({
     ...p,
-    size: hovered?.id === p.id ? 0.9 : 0.6,
-    altitude: hovered?.id === p.id ? 0.08 : 0.04,
+    _size: selected?.id === p.id ? 1.1 : hovered?.id === p.id ? 0.9 : 0.6,
+    _altitude: selected?.id === p.id ? 0.11 : hovered?.id === p.id ? 0.07 : 0.04,
   }));
 
-  const ringsData = DEMO_POINTS.map((p) => ({
+  const ringsData = DEMO_PROJECTS.map((p) => ({
     ...p,
-    maxR: 3,
-    propagationSpeed: 1.5,
-    repeatPeriod: 1200,
+    maxR: 2,
+    propagationSpeed: 1.0,
+    repeatPeriod: 2000,
   }));
 
   return (
     <div className="relative w-full h-full">
+      {/* Loading shimmer */}
+      {!ready && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-80 h-80 rounded-full border border-zinc-800 animate-pulse opacity-40" />
+        </div>
+      )}
+
       <Globe
         ref={globeRef}
         width={typeof window !== "undefined" ? window.innerWidth : 1200}
         height={typeof window !== "undefined" ? Math.min(window.innerHeight * 0.85, 800) : 700}
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
-        backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
-        atmosphereColor="#1d4ed8"
+        globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+        bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+        atmosphereColor="#60a5fa"
         atmosphereAltitude={0.15}
         // Points
         pointsData={pointsData}
-        pointColor={(d: any) => d.color}
-        pointAltitude={(d: any) => d.altitude}
-        pointRadius={(d: any) => d.size}
+        pointColor={(d: any) => d.scoreColor}
+        pointAltitude={(d: any) => d._altitude}
+        pointRadius={(d: any) => d._size}
         pointResolution={12}
-        onPointHover={(p: any) => setHovered(p as DemoPoint | null)}
-        onPointClick={(p: any) => onPointClick(p as DemoPoint)}
-        // Rings
+        onPointHover={(p: any) => !selected && setHovered(p as DemoProject | null)}
+        onPointClick={handlePointClick}
+        // Rings (pulsing halos)
         ringsData={ringsData}
-        ringColor={(d: any) => (t: number) => `${d.color}${Math.round((1 - t) * 200).toString(16).padStart(2, "0")}`}
+        ringColor={(d: any) => (t: number) =>
+          `${d.scoreColor}${Math.round((1 - t) * 160).toString(16).padStart(2, "0")}`
+        }
         ringMaxRadius={(d: any) => d.maxR}
         ringPropagationSpeed={(d: any) => d.propagationSpeed}
         ringRepeatPeriod={(d: any) => d.repeatPeriod}
-        // Labels
-        labelsData={DEMO_POINTS}
+        // Score labels
+        labelsData={DEMO_PROJECTS}
         labelText={(d: any) => `${d.score}`}
-        labelSize={1.8}
+        labelSize={1.5}
         labelDotRadius={0}
-        labelColor={(d: any) => d.color}
-        labelAltitude={0.06}
+        labelColor={(d: any) => d.scoreColor}
+        labelAltitude={0.05}
         labelResolution={3}
-        // Settings
         rendererConfig={{ antialias: true, alpha: true }}
       />
 
       {/* Hover tooltip */}
       <AnimatePresence>
-        {hovered && (
+        {hovered && !selected && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             className="absolute top-6 right-6 w-56 rounded-xl border border-zinc-700 bg-zinc-900/95 p-4 pointer-events-none"
           >
-            <div className="text-xs font-semibold text-zinc-100 mb-1">{hovered.name}</div>
+            <div className="flex items-center gap-2 mb-1">
+              <span>{hovered.typeIcon}</span>
+              <span className="text-xs font-semibold text-zinc-100 leading-tight">{hovered.name}</span>
+            </div>
             <div className="flex items-center gap-2 mb-2">
-              <span
-                className="font-mono text-2xl font-bold"
-                style={{ color: hovered.color }}
-              >
+              <span className="font-mono text-2xl font-bold" style={{ color: hovered.scoreColor }}>
                 {hovered.score}
               </span>
               <span className="text-xs text-zinc-500">/100</span>
             </div>
-            <div className="text-xs" style={{ color: hovered.color }}>{hovered.gwLabel}</div>
-            <div className="text-xs text-zinc-500 mt-1">{hovered.co2} · {hovered.investment}</div>
-            <div className="text-xs text-zinc-600 mt-2">Click to open full analysis →</div>
+            <div className="text-xs font-semibold" style={{ color: hovered.scoreColor }}>
+              {hovered.gwLabel}
+            </div>
+            <div className="text-xs text-zinc-500 mt-1">{hovered.country}</div>
+            <div className="text-xs text-zinc-700 mt-2 italic">Click to open analysis</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Click details overlay */}
+      <AnimatePresence>
+        {selected && (
+          <motion.div
+            initial={{ opacity: 0, y: 32 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 32 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-lg px-4 z-20"
+          >
+            <div
+              className="rounded-2xl border bg-zinc-950/98 p-5 shadow-2xl"
+              style={{ borderColor: selected.scoreColor + "50" }}
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-lg leading-none">{selected.typeIcon}</span>
+                    <span className="text-sm font-bold text-zinc-100">{selected.name}</span>
+                  </div>
+                  <div className="text-xs text-zinc-500">{selected.country} · {selected.type}</div>
+                </div>
+                <div className="flex items-start gap-3 flex-shrink-0">
+                  <div className="text-right">
+                    <div
+                      className="font-mono text-3xl font-bold leading-none"
+                      style={{ color: selected.scoreColor }}
+                    >
+                      {selected.score}
+                    </div>
+                    <div className="text-xs text-zinc-600">/100</div>
+                  </div>
+                  <button
+                    onClick={handleClose}
+                    className="text-zinc-600 hover:text-zinc-300 transition-colors mt-0.5"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Score bar */}
+              <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden mb-3">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: selected.scoreColor }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${selected.score}%` }}
+                  transition={{ duration: 0.6 }}
+                />
+              </div>
+
+              {/* Verdict badge */}
+              <div
+                className="inline-block text-xs px-2.5 py-1 rounded-full border font-semibold mb-3"
+                style={{
+                  color: selected.gwColor,
+                  borderColor: selected.gwColor + "40",
+                  background: selected.gwColor + "12",
+                }}
+              >
+                {selected.gwLabel}
+              </div>
+
+              {/* Two-column explainers */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="rounded-lg bg-zinc-900 border border-zinc-800 p-3">
+                  <div className="text-xs font-semibold text-zinc-400 mb-1">What it does</div>
+                  <p className="text-xs text-zinc-500 leading-relaxed">{selected.simpleExplainer}</p>
+                </div>
+                <div className="rounded-lg bg-zinc-900 border border-zinc-800 p-3">
+                  <div className="text-xs font-semibold text-zinc-400 mb-1">What we found</div>
+                  <p className="text-xs text-zinc-500 leading-relaxed">{selected.findingSummary}</p>
+                </div>
+              </div>
+
+              {/* Metrics row */}
+              <div className="flex items-center gap-3 text-xs mb-4">
+                <span className="text-zinc-600">CO₂ (10yr)</span>
+                <span className="font-mono font-semibold text-green-400">{selected.co2}</span>
+                <span className="w-px h-3 bg-zinc-800" />
+                <span className="text-zinc-600">Cost</span>
+                <span className="font-mono font-semibold text-zinc-300">{selected.investment}</span>
+              </div>
+
+              {/* CTA row */}
+              <div className="flex gap-2">
+                <Link
+                  href={`/simulate/${selected.simId}?intervention=${selected.interventionId}&demo=1`}
+                  className="flex-1 flex items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 px-4 py-2.5 text-sm text-zinc-200 transition-colors group"
+                >
+                  <span>
+                    {selected.isExampleOnly
+                      ? `See ${selected.demoTypeLabel} Analysis`
+                      : "View Full Simulation"}
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+                <Link
+                  href="/globe"
+                  className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 px-3 py-2.5 text-xs text-zinc-400 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Full Map
+                </Link>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Instruction hint */}
-      {!hovered && ready && (
+      {!hovered && !selected && ready && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 2 }}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-zinc-600 font-mono"
+          transition={{ delay: 2.5 }}
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-zinc-700 font-mono pointer-events-none"
         >
-          Drag to rotate · Click a marker to explore
+          Drag · Scroll to zoom · Click a pin to explore
         </motion.div>
       )}
     </div>

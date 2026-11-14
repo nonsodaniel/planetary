@@ -1,15 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { GlobeHero } from "@/components/planetary/GlobeHero";
 import { WorldMapSection } from "@/components/planetary/WorldMapSection";
 import { InterventionForm } from "@/components/planetary/InterventionForm";
 
 export default function HomePage() {
-  const router = useRouter();
-
   return (
     <div className="bg-zinc-950">
 
@@ -38,13 +36,23 @@ export default function HomePage() {
         </motion.div>
 
         {/* Globe — fills the section */}
-        <GlobeHero
-          onPointClick={(point) => {
-            router.push(
-              `/simulate/${point.simId}?intervention=${point.interventionId}&demo=1`
-            );
-          }}
-        />
+        <GlobeHero />
+
+        {/* Full globe CTA */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="absolute top-6 right-6 z-10"
+        >
+          <Link
+            href="/globe"
+            className="flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900/80 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 transition-all"
+          >
+            <ExternalLink className="w-3 h-3" />
+            Full Globe View
+          </Link>
+        </motion.div>
 
         {/* Scroll hint */}
         <motion.div

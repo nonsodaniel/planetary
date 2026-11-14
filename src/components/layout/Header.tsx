@@ -19,6 +19,7 @@ export function Header() {
 
         <nav className="flex items-center gap-0.5">
           <NavLink href="/" active={pathname === "/"}>Simulate</NavLink>
+          <NavLink href="/globe" active={pathname === "/globe"}>Globe</NavLink>
           <NavLink href="/optimize" active={pathname === "/optimize"}>Optimize</NavLink>
           <NavLink href="/portfolio" active={pathname === "/portfolio"}>Portfolio</NavLink>
         </nav>

@@ -11,86 +11,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { DEMO_PROJECTS } from "@/lib/planetary/demoProjects";
+import type { DemoProject } from "@/lib/planetary/demoProjects";
 
-const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+const GEO_URL =
+  "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
-interface ProjectCard {
-  id: string;
-  simId: string;
-  interventionId: string;
-  countryCode: string; // ISO 3166-1 numeric
-  name: string;
-  country: string;
-  type: string;
-  score: number;
-  scoreColor: string;
-  gwLabel: string;
-  gwColor: string;
-  co2: string;
-  investment: string;
-  lat: number;
-  lng: number;
-  desc: string;
-}
-
-const PROJECTS: ProjectCard[] = [
-  {
-    id: "congo",
-    simId: "demo_sim_congo",
-    interventionId: "demo_congo",
-    countryCode: "180", // DRC
-    name: "Congo Basin Reforestation",
-    country: "Democratic Republic of Congo",
-    type: "Reforestation · 500,000 ha",
-    score: 72,
-    scoreColor: "#fbbf24",
-    gwLabel: "Moderate Overclaim",
-    gwColor: "#fbbf24",
-    co2: "1.1M tCO₂",
-    investment: "$50M · 10yr",
-    lat: -2.5,
-    lng: 23.8,
-    desc: "Claims 2M tCO₂/yr; NVIDIA NIM simulation yields 1.1M tCO₂/yr at forest maturity.",
-  },
-  {
-    id: "sahara",
-    simId: "demo_sim_sahara",
-    interventionId: "demo_sahara",
-    countryCode: "788", // Tunisia
-    name: "Saharan Solar Array — 500MW",
-    country: "Tunisia",
-    type: "Solar Farm · 500 MW · DESERTEC",
-    score: 85,
-    scoreColor: "#4ade80",
-    gwLabel: "Claim Accurate",
-    gwColor: "#4ade80",
-    co2: "7.2M tCO₂",
-    investment: "$200M · 10yr",
-    lat: 33.2,
-    lng: 9.1,
-    desc: "HVDC interconnect to European grid. Modeled capacity factor 26.4% vs claimed 27%. Highly accurate.",
-  },
-  {
-    id: "kariba",
-    simId: "demo_sim_kariba",
-    interventionId: "demo_kariba",
-    countryCode: "716", // Zimbabwe
-    name: "Kariba REDD+ Credits",
-    country: "Zimbabwe",
-    type: "Carbon Credits · 785,000 ha",
-    score: 32,
-    scoreColor: "#f87171",
-    gwLabel: "⚠ Greenwashing Detected",
-    gwColor: "#f87171",
-    co2: "1.1M tCO₂",
-    investment: "$30M · 10yr",
-    lat: -16.5,
-    lng: 28.5,
-    desc: "Claims 4.9M tCO₂/yr based on inflated baselines. Physics simulation: 1.1M tCO₂/yr (4.5× overclaim).",
-  },
-];
-
-const HIGHLIGHTED = new Set(PROJECTS.map((p) => p.countryCode));
+const HIGHLIGHTED = new Set(DEMO_PROJECTS.map((p) => p.countryCode));
 
 function GeoShape({
   geo,
@@ -100,65 +27,89 @@ function GeoShape({
   onClick,
 }: {
   geo: any;
-  project: ProjectCard | undefined;
+  project: DemoProject | undefined;
   isHighlighted: boolean;
   isActive: boolean;
   onClick: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
+  const [hov, setHov] = useState(false);
 
   const fill = isActive
     ? (project?.scoreColor ?? "#3f3f46") + "40"
-    : hovered && isHighlighted
+    : hov && isHighlighted
     ? (project?.scoreColor ?? "#3f3f46") + "35"
     : isHighlighted
     ? (project?.scoreColor ?? "#3f3f46") + "20"
-    : hovered
+    : hov
     ? "#3f3f46"
     : "#27272a";
 
-  const stroke = hovered && isHighlighted
-    ? project?.scoreColor ?? "#52525b"
-    : isHighlighted
-    ? (project?.scoreColor ?? "#52525b") + "80"
-    : hovered
-    ? "#52525b"
-    : "#3f3f46";
+  const stroke =
+    isActive || (hov && isHighlighted)
+      ? project?.scoreColor ?? "#52525b"
+      : isHighlighted
+      ? (project?.scoreColor ?? "#52525b") + "80"
+      : "#3f3f46";
 
   return (
     <Geography
       geography={geo}
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
       style={{
-        default: { fill, stroke, strokeWidth: isHighlighted ? 1.5 : 0.5, outline: "none", cursor: isHighlighted ? "pointer" : "default", transition: "fill 0.15s ease, stroke 0.15s ease" },
-        hover: { fill, stroke, strokeWidth: isHighlighted ? 2 : 0.5, outline: "none", cursor: isHighlighted ? "pointer" : "default" },
+        default: {
+          fill,
+          stroke,
+          strokeWidth: isHighlighted ? 1.5 : 0.5,
+          outline: "none",
+          cursor: isHighlighted ? "pointer" : "default",
+          transition: "fill 0.15s, stroke 0.15s",
+        },
+        hover: { fill, stroke, strokeWidth: isHighlighted ? 2 : 0.5, outline: "none" },
         pressed: { fill: (project?.scoreColor ?? "#3f3f46") + "50", outline: "none" },
       } as any}
     />
   );
 }
 
+function ScoreBar({ score, color }: { score: number; color: string }) {
+  return (
+    <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+      <motion.div
+        className="h-full rounded-full"
+        style={{ backgroundColor: color }}
+        initial={{ width: 0 }}
+        animate={{ width: `${score}%` }}
+        transition={{ duration: 0.6 }}
+      />
+    </div>
+  );
+}
+
 export function WorldMapSection() {
-  const [active, setActive] = useState<ProjectCard | null>(null);
+  const [active, setActive] = useState<DemoProject | null>(null);
+
+  const toggle = (p: DemoProject) =>
+    setActive((prev) => (prev?.id === p.id ? null : p));
 
   return (
     <section className="border-t border-zinc-800 bg-zinc-950 py-16 px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6 flex items-end justify-between">
+        {/* Header */}
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold text-zinc-100">Explore by Region</h2>
             <p className="text-sm text-zinc-500 mt-1">
-              Click a highlighted country to see its climate analysis
+              Click any highlighted country to see what we found
             </p>
           </div>
           <div className="flex items-center gap-4 text-xs text-zinc-600">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-green-400" /> Accurate
+              <span className="w-2 h-2 rounded-full bg-green-400" /> Accurate claims
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-400" /> Overclaim
+              <span className="w-2 h-2 rounded-full bg-amber-400" /> Overclaiming
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-red-400" /> Greenwashing
@@ -178,43 +129,41 @@ export function WorldMapSection() {
                 {({ geographies }: { geographies: any[] }) =>
                   geographies.map((geo) => {
                     const id = geo.id?.toString();
-                    const project = PROJECTS.find((p) => p.countryCode === id);
-                    const isHighlighted = HIGHLIGHTED.has(id);
-                    const isActive = active?.countryCode === id;
-
+                    const project = DEMO_PROJECTS.find(
+                      (p) => p.countryCode === id
+                    );
                     return (
                       <GeoShape
                         key={geo.rsmKey}
                         geo={geo}
                         project={project}
-                        isHighlighted={isHighlighted}
-                        isActive={isActive}
-                        onClick={() => project && setActive(isActive ? null : project)}
+                        isHighlighted={HIGHLIGHTED.has(id)}
+                        isActive={active?.countryCode === id}
+                        onClick={() => project && toggle(project)}
                       />
                     );
                   })
                 }
               </Geographies>
 
-              {/* Markers */}
-              {PROJECTS.map((p) => (
+              {DEMO_PROJECTS.map((p) => (
                 <Marker
                   key={p.id}
                   coordinates={[p.lng, p.lat]}
-                  onClick={() => setActive(active?.id === p.id ? null : p)}
+                  onClick={() => toggle(p)}
                 >
                   <motion.g
-                    animate={{ scale: active?.id === p.id ? 1.3 : 1 }}
+                    animate={{ scale: active?.id === p.id ? 1.4 : 1 }}
                     style={{ cursor: "pointer" }}
                   >
                     <circle r={5} fill={p.scoreColor} opacity={0.9} />
-                    <circle r={9} fill={p.scoreColor} opacity={0.2} />
+                    <circle r={9} fill={p.scoreColor} opacity={0.18} />
                     <circle
                       r={13}
                       fill="none"
                       stroke={p.scoreColor}
                       strokeWidth={1}
-                      opacity={0.4}
+                      opacity={0.35}
                     />
                   </motion.g>
                 </Marker>
@@ -240,10 +189,13 @@ export function WorldMapSection() {
                     className="px-5 py-4"
                     style={{ background: `${active.scoreColor}10` }}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="text-sm font-semibold text-zinc-100 leading-tight mb-1">
-                          {active.name}
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span>{active.typeIcon}</span>
+                          <span className="text-sm font-semibold text-zinc-100 leading-tight">
+                            {active.name}
+                          </span>
                         </div>
                         <div className="text-xs text-zinc-500">{active.country}</div>
                       </div>
@@ -257,24 +209,14 @@ export function WorldMapSection() {
                         <div className="text-xs text-zinc-600">/100</div>
                       </div>
                     </div>
-
-                    {/* Score bar */}
-                    <div className="mt-3 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full rounded-full"
-                        style={{ backgroundColor: active.scoreColor }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${active.score}%` }}
-                        transition={{ duration: 0.6 }}
-                      />
-                    </div>
+                    <ScoreBar score={active.score} color={active.scoreColor} />
                   </div>
 
                   <div className="px-5 py-4 space-y-3">
-                    {/* Type */}
+                    {/* Type tag */}
                     <div className="text-xs text-zinc-500">{active.type}</div>
 
-                    {/* Greenwashing label */}
+                    {/* Verdict */}
                     <div
                       className="inline-block text-xs px-2.5 py-1 rounded-full border font-semibold"
                       style={{
@@ -286,8 +228,24 @@ export function WorldMapSection() {
                       {active.gwLabel}
                     </div>
 
+                    {/* Simple explainers */}
+                    <div className="space-y-2">
+                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+                        <div className="text-xs font-semibold text-zinc-500 mb-1">What it does</div>
+                        <p className="text-xs text-zinc-500 leading-relaxed">
+                          {active.simpleExplainer}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+                        <div className="text-xs font-semibold text-zinc-500 mb-1">What we found</div>
+                        <p className="text-xs text-zinc-500 leading-relaxed">
+                          {active.findingSummary}
+                        </p>
+                      </div>
+                    </div>
+
                     {/* Metrics */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2">
                       <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
                         <div className="text-xs text-zinc-600 mb-1">CO₂ (10yr)</div>
                         <div className="font-mono text-sm font-semibold text-green-400">
@@ -302,15 +260,16 @@ export function WorldMapSection() {
                       </div>
                     </div>
 
-                    {/* Description */}
-                    <p className="text-xs text-zinc-500 leading-relaxed">{active.desc}</p>
-
                     {/* CTA */}
                     <Link
                       href={`/simulate/${active.simId}?intervention=${active.interventionId}&demo=1`}
                       className="flex items-center justify-between w-full rounded-lg border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 px-4 py-2.5 text-sm text-zinc-200 transition-colors group"
                     >
-                      <span>View Full Analysis</span>
+                      <span>
+                        {active.isExampleOnly
+                          ? `See ${active.demoTypeLabel} Analysis`
+                          : "View Full Simulation"}
+                      </span>
                       <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:translate-x-0.5 transition-transform" />
                     </Link>
                   </div>
@@ -321,22 +280,22 @@ export function WorldMapSection() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="rounded-xl border border-zinc-800 bg-zinc-900 h-64 flex flex-col items-center justify-center text-center px-6"
+                  className="rounded-xl border border-zinc-800 bg-zinc-900 h-56 flex flex-col items-center justify-center text-center px-6"
                 >
                   <div className="text-2xl mb-3">🌍</div>
                   <p className="text-sm text-zinc-500">
-                    Click a highlighted country on the map to see its climate analysis
+                    Click a highlighted country to see what our simulation found
                   </p>
                 </motion.div>
               )}
             </AnimatePresence>
 
             {/* Project list pills */}
-            <div className="mt-4 space-y-2">
-              {PROJECTS.map((p) => (
+            <div className="mt-4 space-y-1.5">
+              {DEMO_PROJECTS.map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => setActive(active?.id === p.id ? null : p)}
+                  onClick={() => toggle(p)}
                   className={cn(
                     "w-full flex items-center justify-between px-3 py-2 rounded-lg border text-xs transition-all",
                     active?.id === p.id
@@ -345,10 +304,12 @@ export function WorldMapSection() {
                   )}
                 >
                   <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.scoreColor }} />
-                    {p.country}
+                    <span>{p.typeIcon}</span>
+                    <span>{p.country}</span>
                   </span>
-                  <span className="font-mono" style={{ color: p.scoreColor }}>{p.score}</span>
+                  <span className="font-mono font-semibold" style={{ color: p.scoreColor }}>
+                    {p.score}
+                  </span>
                 </button>
               ))}
             </div>

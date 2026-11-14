@@ -143,7 +143,7 @@ export function InterventionForm() {
                     className={`flex flex-col items-center gap-1 p-2.5 rounded-lg border text-xs transition-all ${
                       type === t.value
                         ? "border-blue-500/40 bg-blue-500/10 text-blue-300"
-                        : "border-zinc-700/50 bg-zinc-900/50 text-zinc-500 hover:border-zinc-600 hover:text-zinc-400"
+                        : "border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
                     }`}
                   >
                     <span className="text-lg">{t.icon}</span>
@@ -346,7 +346,7 @@ export function InterventionForm() {
                 <motion.button
                   key={intervention.id}
                   onClick={() => loadDemo(intervention.id)}
-                  className="w-full text-left rounded-xl border border-zinc-700/50 bg-zinc-900/60 hover:border-zinc-600 hover:bg-zinc-900 transition-all p-4 group"
+                  className="w-full text-left rounded-xl border border-zinc-700 bg-zinc-800 hover:border-zinc-500 hover:bg-zinc-700 transition-all p-4 group"
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                 >

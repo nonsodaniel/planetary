@@ -144,7 +144,7 @@ export default function OptimizePage() {
                       "px-3 py-1 rounded text-xs font-mono border transition-all",
                       budget === p.value
                         ? "border-blue-500/40 bg-blue-500/10 text-blue-300"
-                        : "border-zinc-700 bg-zinc-900 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300"
+                        : "border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
                     )}
                   >
                     {p.label}
@@ -163,7 +163,7 @@ export default function OptimizePage() {
                   }}
                   placeholder="Custom amount"
                   min="5"
-                  className="flex-1 bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
+                  className="flex-1 bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                 />
                 <span className="text-zinc-500 text-sm">M USD</span>
               </div>
@@ -199,7 +199,7 @@ export default function OptimizePage() {
                       "w-full text-left flex items-center justify-between px-3 py-2 rounded text-xs border transition-all",
                       excludedTypes.includes(t.value)
                         ? "border-red-500/30 bg-red-500/5 text-zinc-500 line-through"
-                        : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700"
+                        : "border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-zinc-600"
                     )}
                   >
                     {t.label}

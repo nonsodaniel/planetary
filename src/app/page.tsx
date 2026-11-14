@@ -12,27 +12,22 @@ export default function HomePage() {
     <div className="bg-zinc-950">
 
       {/* ── Globe Hero — full viewport ──────────────────────────────────── */}
-      <section className="relative h-[calc(100vh-56px)] overflow-hidden bg-zinc-950">
+      <section className="relative h-[calc(100vh-48px)] overflow-hidden bg-zinc-950">
         {/* Title overlay */}
         <motion.div
-          initial={{ opacity: 0, y: -16 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-          className="absolute top-8 left-0 right-0 z-10 flex flex-col items-center text-center pointer-events-none"
+          transition={{ delay: 0.6, duration: 0.5 }}
+          className="absolute top-3 left-0 right-0 z-10 flex flex-col items-center text-center pointer-events-none"
         >
-          <div className="inline-flex items-center gap-1.5 text-xs font-mono border border-zinc-700 bg-zinc-950/80 text-zinc-400 rounded-full px-3 py-1 mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+          <div className="inline-flex items-center gap-1.5 text-[10px] font-mono border border-zinc-800 bg-zinc-950/70 text-zinc-500 rounded-full px-2.5 py-0.5 mb-1.5">
+            <span className="w-1 h-1 rounded-full bg-green-400" />
             NVIDIA NIM · Cosmos · cuOpt · Cala
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-zinc-100 leading-tight">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-200 leading-tight">
             Climate Verification
-            <br />
-            <span className="text-zinc-400">at Planetary Scale</span>
+            <span className="text-zinc-500"> at Planetary Scale</span>
           </h1>
-          <p className="text-sm text-zinc-500 mt-3 max-w-sm leading-relaxed">
-            Simulate the 10-year physical effects of any climate investment.
-            Detect greenwashing before it costs you.
-          </p>
         </motion.div>
 
         {/* Globe — fills the section */}
@@ -59,7 +54,7 @@ export default function HomePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 3 }}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-zinc-600 pointer-events-none"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-0.5 text-zinc-700 pointer-events-none"
         >
           <span className="text-xs font-mono">Scroll to explore</span>
           <motion.div

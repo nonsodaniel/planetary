@@ -85,7 +85,7 @@ export function GlobeHero() {
       <Globe
         ref={globeRef}
         width={typeof window !== "undefined" ? window.innerWidth : 1200}
-        height={typeof window !== "undefined" ? Math.min(window.innerHeight * 0.85, 800) : 700}
+        height={typeof window !== "undefined" ? window.innerHeight - 48 : 800}
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         atmosphereColor="#60a5fa"

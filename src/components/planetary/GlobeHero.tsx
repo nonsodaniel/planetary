@@ -10,12 +10,112 @@ import type { DemoProject } from "@/lib/planetary/demoProjects";
 
 const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
 
+// ── Deterministic starfield (no Math.random — avoids hydration mismatch) ──────
+function sr(n: number): number {
+  const x = Math.sin(n) * 43758.5453123;
+  return x - Math.floor(x);
+}
+const STARS = Array.from({ length: 220 }, (_, i) => ({
+  id: i,
+  x: sr(i * 2.1 + 1) * 100,
+  y: sr(i * 3.7 + 2) * 100,
+  r: sr(i * 5.3 + 3) * 1.6 + 0.35,
+  o: sr(i * 7.9 + 4) * 0.55 + 0.08,
+  twinkle: i % 5 === 0,
+  dur: sr(i * 11.3 + 5) * 3 + 2,
+  delay: sr(i * 13.7 + 6) * 4,
+}));
+
+const NEBULAS = [
+  { key: "a", x: "6%",  y: "12%", w: 340, h: 280, color: "rgba(96,165,250,0.055)",  blur: 48 },
+  { key: "b", x: "68%", y: "52%", w: 260, h: 220, color: "rgba(167,139,250,0.045)", blur: 36 },
+  { key: "c", x: "40%", y: "5%",  w: 300, h: 200, color: "rgba(52,211,153,0.03)",   blur: 60 },
+];
+
+const PLANETS = [
+  {
+    key: "mars",
+    x: "79%", y: "13%", r: 7,
+    bg: "radial-gradient(circle at 35% 32%, #fbbf24, #92400e)",
+    shadow: "0 0 14px rgba(251,191,36,0.5), 0 0 4px rgba(251,191,36,0.8)",
+  },
+  {
+    key: "neptune",
+    x: "11%", y: "70%", r: 5,
+    bg: "radial-gradient(circle at 35% 32%, #a5f3fc, #0369a1)",
+    shadow: "0 0 12px rgba(165,243,252,0.45)",
+  },
+  {
+    key: "violet",
+    x: "88%", y: "75%", r: 3.5,
+    bg: "radial-gradient(circle at 35% 32%, #d8b4fe, #581c87)",
+    shadow: "0 0 10px rgba(216,180,254,0.4)",
+  },
+];
+
+// ── Space background ───────────────────────────────────────────────────────────
+function SpaceBackground() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Nebula blobs */}
+      {NEBULAS.map((n) => (
+        <div
+          key={n.key}
+          className="absolute rounded-full"
+          style={{
+            left: n.x, top: n.y,
+            width: n.w, height: n.h,
+            background: `radial-gradient(ellipse, ${n.color} 0%, transparent 70%)`,
+            filter: `blur(${n.blur}px)`,
+            transform: "translate(-50%, -50%)",
+          }}
+        />
+      ))}
+
+      {/* Stars */}
+      {STARS.map((s) =>
+        s.twinkle ? (
+          <motion.div
+            key={s.id}
+            className="absolute rounded-full bg-white"
+            style={{ left: `${s.x}%`, top: `${s.y}%`, width: s.r * 2, height: s.r * 2 }}
+            animate={{ opacity: [s.o, s.o * 0.15, s.o] }}
+            transition={{ duration: s.dur, repeat: Infinity, delay: s.delay, ease: "easeInOut" }}
+          />
+        ) : (
+          <div
+            key={s.id}
+            className="absolute rounded-full bg-white"
+            style={{ left: `${s.x}%`, top: `${s.y}%`, width: s.r * 2, height: s.r * 2, opacity: s.o }}
+          />
+        )
+      )}
+
+      {/* Planetary bodies */}
+      {PLANETS.map((p) => (
+        <div
+          key={p.key}
+          className="absolute rounded-full"
+          style={{
+            left: p.x, top: p.y,
+            width: p.r * 2, height: p.r * 2,
+            background: p.bg,
+            boxShadow: p.shadow,
+            transform: "translate(-50%, -50%)",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 export function GlobeHero() {
   const globeRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
   const [hovered, setHovered] = useState<DemoProject | null>(null);
   const [selected, setSelected] = useState<DemoProject | null>(null);
-  // Refs to avoid stale closures in event listeners
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
   const selectedRef = useRef<DemoProject | null>(null);
   const isHoveringPin = useRef(false);
 
@@ -31,18 +131,15 @@ export function GlobeHero() {
 
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.4;
-    controls.enableZoom = false; // only enabled while cursor is inside the globe area
+    controls.enableZoom = false;
     controls.minDistance = 100;
     controls.maxDistance = 600;
     controls.enablePan = false;
     globeRef.current.pointOfView({ lat: 10, lng: 20, altitude: 2.4 }, 0);
 
-    // Pause rotation while user is dragging or zooming; resume when they stop
     const onStart = () => { controls.autoRotate = false; };
     const onEnd   = () => {
-      if (!selectedRef.current && !isHoveringPin.current) {
-        controls.autoRotate = true;
-      }
+      if (!selectedRef.current && !isHoveringPin.current) controls.autoRotate = true;
     };
     controls.addEventListener("start", onStart);
     controls.addEventListener("end",   onEnd);
@@ -80,7 +177,6 @@ export function GlobeHero() {
     }
   }, []);
 
-  // Only allow scroll-to-zoom while the cursor is inside the globe section
   const handleMouseEnter = useCallback(() => {
     if (!globeRef.current) return;
     const controls = globeRef.current.controls();
@@ -93,17 +189,30 @@ export function GlobeHero() {
     if (controls) controls.enableZoom = false;
   }, []);
 
+  // Tooltip positioning — clamp so it stays inside the viewport
+  const tooltipStyle = useMemo(() => {
+    const W = typeof window !== "undefined" ? window.innerWidth : 1200;
+    const H = typeof window !== "undefined" ? window.innerHeight : 800;
+    const TW = 224; // tooltip width (w-56)
+    const TH = 140; // approx tooltip height
+    const GAP = 14;
+    const rawLeft = mouse.x > W / 2 ? mouse.x - TW - GAP : mouse.x + GAP;
+    const rawTop  = mouse.y - TH / 2;
+    return {
+      left: Math.max(8, Math.min(rawLeft, W - TW - 8)),
+      top:  Math.max(8, Math.min(rawTop,  H - TH - 8)),
+    };
+  }, [mouse]);
+
   const pointsData = DEMO_PROJECTS.map((p) => ({
     ...p,
-    _size: selected?.id === p.id ? 1.1 : hovered?.id === p.id ? 0.9 : 0.6,
+    _size:     selected?.id === p.id ? 1.1 : hovered?.id === p.id ? 0.9 : 0.6,
     _altitude: selected?.id === p.id ? 0.11 : hovered?.id === p.id ? 0.07 : 0.04,
   }));
 
   const ringsData = DEMO_PROJECTS.map((p) => ({
     ...p,
-    maxR: 2,
-    propagationSpeed: 1.0,
-    repeatPeriod: 2000,
+    maxR: 2, propagationSpeed: 1.0, repeatPeriod: 2000,
   }));
 
   return (
@@ -111,14 +220,22 @@ export function GlobeHero() {
       className="relative w-full h-full"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onMouseMove={(e) => {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        setMouse({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+      }}
     >
+      {/* Space backdrop — stars, nebulas, planets */}
+      <SpaceBackground />
+
       {/* Loading shimmer */}
       {!ready && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-80 h-80 rounded-full border border-zinc-800 animate-pulse opacity-40" />
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div className="w-80 h-80 rounded-full border border-zinc-800 animate-pulse opacity-30" />
         </div>
       )}
 
+      {/* Globe */}
       <Globe
         ref={globeRef}
         width={typeof window !== "undefined" ? window.innerWidth : 1200}
@@ -126,8 +243,7 @@ export function GlobeHero() {
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         atmosphereColor="#60a5fa"
-        atmosphereAltitude={0.15}
-        // Points
+        atmosphereAltitude={0.18}
         pointsData={pointsData}
         pointColor={(d: any) => d.scoreColor}
         pointAltitude={(d: any) => d._altitude}
@@ -144,7 +260,6 @@ export function GlobeHero() {
           }
         }}
         onPointClick={handlePointClick}
-        // Rings (pulsing halos)
         ringsData={ringsData}
         ringColor={(d: any) => (t: number) =>
           `${d.scoreColor}${Math.round((1 - t) * 160).toString(16).padStart(2, "0")}`
@@ -152,7 +267,6 @@ export function GlobeHero() {
         ringMaxRadius={(d: any) => d.maxR}
         ringPropagationSpeed={(d: any) => d.propagationSpeed}
         ringRepeatPeriod={(d: any) => d.repeatPeriod}
-        // Score labels
         labelsData={DEMO_PROJECTS}
         labelText={(d: any) => `${d.score}`}
         labelSize={1.5}
@@ -163,35 +277,51 @@ export function GlobeHero() {
         rendererConfig={{ antialias: true, alpha: true }}
       />
 
-      {/* Hover tooltip */}
+      {/* ── Hover tooltip — follows the cursor, appears next to the pin ───── */}
       <AnimatePresence>
         {hovered && !selected && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            key={hovered.id}
+            initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="absolute top-6 right-6 w-56 rounded-xl border border-zinc-700 bg-zinc-900/95 p-4 pointer-events-none"
+            exit={{ opacity: 0, scale: 0.92 }}
+            transition={{ duration: 0.12 }}
+            className="absolute z-20 w-56 rounded-xl border border-zinc-700/80 bg-zinc-900/98 shadow-2xl p-3 pointer-events-none"
+            style={tooltipStyle}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <span>{hovered.typeIcon}</span>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-base leading-none">{hovered.typeIcon}</span>
               <span className="text-xs font-semibold text-zinc-100 leading-tight">{hovered.name}</span>
             </div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="font-mono text-2xl font-bold" style={{ color: hovered.scoreColor }}>
+            <div className="flex items-baseline gap-1.5 mb-1.5">
+              <span
+                className="font-mono text-2xl font-bold leading-none"
+                style={{ color: hovered.scoreColor }}
+              >
                 {hovered.score}
               </span>
               <span className="text-xs text-zinc-500">/100</span>
+              <span
+                className="ml-auto text-xs font-semibold"
+                style={{ color: hovered.scoreColor }}
+              >
+                {hovered.gwLabel}
+              </span>
             </div>
-            <div className="text-xs font-semibold" style={{ color: hovered.scoreColor }}>
-              {hovered.gwLabel}
+            {/* Score bar */}
+            <div className="h-1 bg-zinc-800 rounded-full overflow-hidden mb-1.5">
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${hovered.score}%`, backgroundColor: hovered.scoreColor }}
+              />
             </div>
-            <div className="text-xs text-zinc-500 mt-1">{hovered.country}</div>
-            <div className="text-xs text-zinc-700 mt-2 italic">Click to open analysis</div>
+            <div className="text-[11px] text-zinc-500">{hovered.country} · {hovered.type}</div>
+            <div className="text-[10px] text-zinc-700 mt-1 italic">Click to open analysis</div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Click details overlay */}
+      {/* ── Click details overlay ──────────────────────────────────────────── */}
       <AnimatePresence>
         {selected && (
           <motion.div
@@ -205,7 +335,6 @@ export function GlobeHero() {
               className="rounded-2xl border bg-zinc-950/98 p-5 shadow-2xl"
               style={{ borderColor: selected.scoreColor + "50" }}
             >
-              {/* Header */}
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-0.5">
@@ -233,7 +362,6 @@ export function GlobeHero() {
                 </div>
               </div>
 
-              {/* Score bar */}
               <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden mb-3">
                 <motion.div
                   className="h-full rounded-full"
@@ -244,7 +372,6 @@ export function GlobeHero() {
                 />
               </div>
 
-              {/* Verdict badge */}
               <div
                 className="inline-block text-xs px-2.5 py-1 rounded-full border font-semibold mb-3"
                 style={{
@@ -256,7 +383,6 @@ export function GlobeHero() {
                 {selected.gwLabel}
               </div>
 
-              {/* Two-column explainers */}
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <div className="rounded-lg bg-zinc-900 border border-zinc-800 p-3">
                   <div className="text-xs font-semibold text-zinc-400 mb-1">What it does</div>
@@ -268,7 +394,6 @@ export function GlobeHero() {
                 </div>
               </div>
 
-              {/* Metrics row */}
               <div className="flex items-center gap-3 text-xs mb-4">
                 <span className="text-zinc-600">CO₂ (10yr)</span>
                 <span className="font-mono font-semibold text-green-400">{selected.co2}</span>
@@ -277,7 +402,6 @@ export function GlobeHero() {
                 <span className="font-mono font-semibold text-zinc-300">{selected.investment}</span>
               </div>
 
-              {/* CTA row */}
               <div className="flex gap-2">
                 <Link
                   href={`/simulate/${selected.simId}?intervention=${selected.interventionId}&demo=1`}

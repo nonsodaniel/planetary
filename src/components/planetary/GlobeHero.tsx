@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -15,6 +15,9 @@ export function GlobeHero() {
   const [ready, setReady] = useState(false);
   const [hovered, setHovered] = useState<DemoProject | null>(null);
   const [selected, setSelected] = useState<DemoProject | null>(null);
+  // Refs to avoid stale closures in event listeners
+  const selectedRef = useRef<DemoProject | null>(null);
+  const isHoveringPin = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setReady(true), 300);
@@ -24,21 +27,37 @@ export function GlobeHero() {
   useEffect(() => {
     if (!ready || !globeRef.current) return;
     const controls = globeRef.current.controls();
-    if (controls) {
-      controls.autoRotate = true;
-      controls.autoRotateSpeed = 0.4;
-      controls.enableZoom = true;
-      controls.minDistance = 100;
-      controls.maxDistance = 600;
-      controls.enablePan = false;
-    }
+    if (!controls) return;
+
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.4;
+    controls.enableZoom = true;
+    controls.minDistance = 100;
+    controls.maxDistance = 600;
+    controls.enablePan = false;
     globeRef.current.pointOfView({ lat: 10, lng: 20, altitude: 2.4 }, 0);
+
+    // Pause rotation while user is dragging or zooming; resume when they stop
+    const onStart = () => { controls.autoRotate = false; };
+    const onEnd   = () => {
+      if (!selectedRef.current && !isHoveringPin.current) {
+        controls.autoRotate = true;
+      }
+    };
+    controls.addEventListener("start", onStart);
+    controls.addEventListener("end",   onEnd);
+    return () => {
+      controls.removeEventListener("start", onStart);
+      controls.removeEventListener("end",   onEnd);
+    };
   }, [ready]);
 
   const handlePointClick = useCallback((p: any) => {
     const project = p as DemoProject;
+    selectedRef.current = project;
     setSelected(project);
     setHovered(null);
+    isHoveringPin.current = false;
     if (globeRef.current) {
       const controls = globeRef.current.controls();
       if (controls) controls.autoRotate = false;
@@ -50,6 +69,7 @@ export function GlobeHero() {
   }, []);
 
   const handleClose = useCallback(() => {
+    selectedRef.current = null;
     setSelected(null);
     if (globeRef.current) {
       const controls = globeRef.current.controls();
@@ -96,7 +116,16 @@ export function GlobeHero() {
         pointAltitude={(d: any) => d._altitude}
         pointRadius={(d: any) => d._size}
         pointResolution={12}
-        onPointHover={(p: any) => !selected && setHovered(p as DemoProject | null)}
+        onPointHover={(p: any) => {
+          if (selected) return;
+          const proj = p as DemoProject | null;
+          isHoveringPin.current = !!proj;
+          setHovered(proj);
+          if (globeRef.current) {
+            const controls = globeRef.current.controls();
+            if (controls) controls.autoRotate = !proj;
+          }
+        }}
         onPointClick={handlePointClick}
         // Rings (pulsing halos)
         ringsData={ringsData}

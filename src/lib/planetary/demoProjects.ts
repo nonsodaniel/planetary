@@ -212,6 +212,58 @@ export const DEMO_PROJECTS: DemoProject[] = [
     demoTypeLabel: "Wind Energy",
   },
 
+  // ── Northern Europe ───────────────────────────────────────────────────────
+  {
+    id: "finland",
+    simId: "demo_sim_congo",
+    interventionId: "demo_congo",
+    countryCode: "246", // Finland
+    name: "Häme Peatland Restoration",
+    country: "Finland",
+    type: "Peatland Restoration · 50,000 ha",
+    typeIcon: "🌿",
+    score: 81,
+    scoreColor: "#4ade80",
+    gwLabel: "Claim Accurate",
+    gwColor: "#4ade80",
+    co2: "2.1M tCO₂",
+    investment: "$38M · 10yr",
+    lat: 61.5,
+    lng: 24.5,
+    simpleExplainer:
+      "Restores 50,000 ha of Finland's drained peatlands — ancient bogs that lock away enormous carbon when re-wetted. Like plugging a slow carbon leak that's been open for decades.",
+    findingSummary:
+      "Peatland carbon accounting is among the most reliable in the field. We verified 92% of the claimed impact. Strong additionality — these bogs would have kept draining without intervention.",
+    desc: "50,000 ha peat rewetting. Verified 2.1M tCO₂ vs claimed 2.3M. High permanence.",
+    isExampleOnly: true,
+    demoTypeLabel: "Peatland Carbon",
+  },
+  {
+    id: "sweden",
+    simId: "demo_sim_sahara",
+    interventionId: "demo_sahara",
+    countryCode: "752", // Sweden
+    name: "Baltic Sea Wind Array",
+    country: "Sweden",
+    type: "Wind Farm · 1.1 GW",
+    typeIcon: "💨",
+    score: 88,
+    scoreColor: "#4ade80",
+    gwLabel: "Claim Accurate",
+    gwColor: "#4ade80",
+    co2: "5.8M tCO₂",
+    investment: "$210M · 10yr",
+    lat: 57.5,
+    lng: 17.5,
+    simpleExplainer:
+      "Offshore wind turbines in the Baltic Sea feeding clean power to the Swedish grid. Shallow water and consistent winds make this one of Europe's most reliable wind locations.",
+    findingSummary:
+      "Wind speeds and capacity factors match our atmospheric models almost exactly. Claims are accurate. Sweden's already-clean grid makes every displaced kWh especially valuable.",
+    desc: "Baltic offshore 1.1 GW wind. Capacity factor 43.1% vs claimed 43%. Exceptional accuracy.",
+    isExampleOnly: true,
+    demoTypeLabel: "Wind Energy",
+  },
+
   // ── North America ─────────────────────────────────────────────────────────
   {
     id: "boreal",

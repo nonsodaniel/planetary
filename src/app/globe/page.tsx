@@ -177,6 +177,8 @@ export default function GlobePage() {
   const [hovered, setHovered] = useState<DemoProject | null>(null);
   const [selected, setSelected] = useState<DemoProject | null>(null);
   const [dims, setDims] = useState({ w: 1200, h: 800 });
+  const selectedRef = useRef<DemoProject | null>(null);
+  const isHoveringPin = useRef(false);
 
   useEffect(() => {
     function update() {
@@ -195,21 +197,36 @@ export default function GlobePage() {
   useEffect(() => {
     if (!ready || !globeRef.current) return;
     const controls = globeRef.current.controls();
-    if (controls) {
-      controls.autoRotate = true;
-      controls.autoRotateSpeed = 0.3;
-      controls.enableZoom = true;
-      controls.minDistance = 100;
-      controls.maxDistance = 700;
-      controls.enablePan = false;
-    }
+    if (!controls) return;
+
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.3;
+    controls.enableZoom = true;
+    controls.minDistance = 100;
+    controls.maxDistance = 700;
+    controls.enablePan = false;
     globeRef.current.pointOfView({ lat: 10, lng: 20, altitude: 2.2 }, 0);
+
+    const onStart = () => { controls.autoRotate = false; };
+    const onEnd   = () => {
+      if (!selectedRef.current && !isHoveringPin.current) {
+        controls.autoRotate = true;
+      }
+    };
+    controls.addEventListener("start", onStart);
+    controls.addEventListener("end",   onEnd);
+    return () => {
+      controls.removeEventListener("start", onStart);
+      controls.removeEventListener("end",   onEnd);
+    };
   }, [ready]);
 
   const handlePointClick = useCallback((p: any) => {
     const project = p as DemoProject;
+    selectedRef.current = project;
     setSelected(project);
     setHovered(null);
+    isHoveringPin.current = false;
     if (globeRef.current) {
       const controls = globeRef.current.controls();
       if (controls) controls.autoRotate = false;
@@ -221,6 +238,7 @@ export default function GlobePage() {
   }, []);
 
   const handleClose = useCallback(() => {
+    selectedRef.current = null;
     setSelected(null);
     if (globeRef.current) {
       const controls = globeRef.current.controls();
@@ -426,7 +444,16 @@ export default function GlobePage() {
         pointAltitude={(d: any) => d._altitude}
         pointRadius={(d: any) => d._size}
         pointResolution={12}
-        onPointHover={(p: any) => !selected && setHovered(p as DemoProject | null)}
+        onPointHover={(p: any) => {
+          if (selected) return;
+          const proj = p as DemoProject | null;
+          isHoveringPin.current = !!proj;
+          setHovered(proj);
+          if (globeRef.current) {
+            const controls = globeRef.current.controls();
+            if (controls) controls.autoRotate = !proj;
+          }
+        }}
         onPointClick={handlePointClick}
         ringsData={ringsData}
         ringColor={(d: any) => (t: number) =>

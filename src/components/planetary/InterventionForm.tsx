@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Loader2, Zap, Upload, FlaskConical } from "lucide-react";
+import { Loader2, Zap, FlaskConical, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { interventionLabel, makeId } from "@/lib/utils";
+import { interventionLabel } from "@/lib/utils";
 import { usePlanetaryStore } from "@/lib/planetary/store";
 import { DEMO_INTERVENTIONS, DEMO_SIMULATIONS } from "@/lib/planetary/demos";
+import { GreenwashingScanner } from "@/components/planetary/GreenwashingScanner";
 import type { InterventionType } from "@/lib/planetary/types";
 
 const INTERVENTION_TYPES: { value: InterventionType; label: string; icon: string }[] = [
@@ -114,17 +114,26 @@ export function InterventionForm() {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <Tabs defaultValue="new">
+      <Tabs defaultValue="scan">
         <TabsList className="w-full mb-6">
+          <TabsTrigger value="scan" className="flex-1 gap-2">
+            <ScanLine className="w-3.5 h-3.5" />
+            Scan Registry
+          </TabsTrigger>
           <TabsTrigger value="new" className="flex-1 gap-2">
             <Zap className="w-3.5 h-3.5" />
-            New Simulation
+            Manual
           </TabsTrigger>
           <TabsTrigger value="demos" className="flex-1 gap-2">
             <FlaskConical className="w-3.5 h-3.5" />
-            Demo Projects
+            Demos
           </TabsTrigger>
         </TabsList>
+
+        {/* Greenwashing Scanner */}
+        <TabsContent value="scan">
+          <GreenwashingScanner />
+        </TabsContent>
 
         {/* New Simulation */}
         <TabsContent value="new">

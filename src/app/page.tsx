@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ChevronDown, ExternalLink } from "lucide-react";
+import { ChevronDown, ExternalLink, ScanLine } from "lucide-react";
 import Link from "next/link";
 import { GlobeHero } from "@/components/planetary/GlobeHero";
 import { WorldMapSection } from "@/components/planetary/WorldMapSection";
@@ -78,9 +78,24 @@ export default function HomePage() {
               Input any climate intervention. Planetary runs a 5-stage NVIDIA
               pipeline and returns a physics-verified Impact Score in seconds.
             </p>
+
+            {/* Scanner callout */}
+            <div className="mb-5 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-3">
+              <div className="flex items-center gap-2 mb-1">
+                <ScanLine className="w-3.5 h-3.5 text-blue-400" />
+                <span className="text-xs font-semibold text-blue-300">Greenwashing Scanner</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-mono">NEW</span>
+              </div>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Paste a Verra project ID or name. Planetary scrapes the live registry
+                via <span className="text-zinc-400">Context.dev</span> and auto-runs
+                the full simulation pipeline.
+              </p>
+            </div>
+
             <div className="space-y-3 text-xs text-zinc-600">
               {[
-                { n: "01", label: "Cala fetches real emissions baseline" },
+                { n: "01", label: "Context.dev scrapes live registry" },
                 { n: "02", label: "NIM runs climate physics inference" },
                 { n: "03", label: "Cosmos simulates world state at yr 0→10" },
                 { n: "04", label: "cuOpt finds optimal placement zones" },

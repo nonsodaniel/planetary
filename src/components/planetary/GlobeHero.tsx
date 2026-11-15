@@ -275,6 +275,7 @@ export function GlobeHero() {
         labelColor={(d: any) => d.scoreColor}
         labelAltitude={0.05}
         labelResolution={3}
+        backgroundColor="rgba(0,0,0,0)"
         rendererConfig={{ antialias: true, alpha: true }}
       />
 

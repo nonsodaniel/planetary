@@ -22,7 +22,7 @@ export function ClaimVerifier({ verification }: ClaimVerifierProps) {
   const Icon = cfg.icon;
   const isSevere = verification.greenwashing_risk === "high" || verification.greenwashing_risk === "severe";
   const claimedBar = 100;
-  const simulatedBar = Math.min(100, (verification.simulated_annual_co2_tons / verification.claimed_annual_co2_tons) * 100);
+  const simulatedBar = Math.min(100, (verification.simulated_annual_co2_tons / (verification.claimed_annual_co2_tons || 1)) * 100);
 
   return (
     <div className="space-y-4">

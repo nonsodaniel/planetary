@@ -20,3 +20,7 @@ out/
 # IDE
 .vscode/
 *.swp
+
+# Claude
+.claude/
+plan.md

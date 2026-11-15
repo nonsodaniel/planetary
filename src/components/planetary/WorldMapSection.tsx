@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   ComposableMap,
   Geographies,
@@ -18,6 +18,25 @@ const GEO_URL =
   "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 const HIGHLIGHTED = new Set(DEMO_PROJECTS.map((p) => p.countryCode));
+
+// Per-marker label direction so crowded clusters (Europe, South Asia) stay readable.
+// nx/ny = country-name text offset; sx/sy = score text offset; anchor = text-anchor.
+const LABEL_DIR: Record<string, {
+  nx: number; ny: number;
+  sx: number; sy: number;
+  anchor: "start" | "end" | "middle";
+}> = {
+  congo:      { nx:  15, ny:  -1, sx:  15, sy:   8, anchor: "start"  },
+  sahara:     { nx:  15, ny:  -1, sx:  15, sy:   8, anchor: "start"  },
+  kariba:     { nx:  15, ny:  -1, sx:  15, sy:   8, anchor: "start"  },
+  amazon:     { nx:  15, ny:  -1, sx:  15, sy:   8, anchor: "start"  },
+  rajasthan:  { nx:   0, ny: -15, sx:   0, sy:  -6, anchor: "middle" }, // above — clears Bangladesh below
+  sundarbans: { nx:  15, ny:  -1, sx:  15, sy:   8, anchor: "start"  },
+  dogger:     { nx: -15, ny: -12, sx: -15, sy:  -3, anchor: "end"    }, // upper-left into Atlantic
+  sweden:     { nx: -15, ny:  -1, sx: -15, sy:   8, anchor: "end"    }, // left — away from Finland
+  finland:    { nx:  15, ny:  -1, sx:  15, sy:   8, anchor: "start"  }, // right — into eastern space
+  boreal:     { nx:  15, ny:  -1, sx:  15, sy:   8, anchor: "start"  },
+};
 
 function GeoShape({
   geo,
@@ -87,8 +106,44 @@ function ScoreBar({ score, color }: { score: number; color: string }) {
   );
 }
 
+function MapSkeleton() {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-900">
+      {/* Rough continent outlines as placeholder blobs */}
+      <div className="relative w-full h-full overflow-hidden opacity-20">
+        {[
+          { w: "22%", h: "28%", left: "12%", top: "30%", r: "40% 60% 55% 45%/45% 40% 60% 55%" },
+          { w: "18%", h: "30%", left: "16%", top: "15%", r: "50% 50% 55% 45%/45% 55% 45% 55%" },
+          { w: "28%", h: "35%", left: "43%", top: "10%", r: "45% 55% 50% 50%/50% 45% 55% 50%" },
+          { w: "14%", h: "32%", left: "75%", top: "15%", r: "50% 50% 50% 50%/40% 60% 40% 60%" },
+          { w: "10%", h: "22%", left: "35%", top: "52%", r: "45% 55% 60% 40%/40% 60% 45% 55%" },
+          { w: "20%", h: "30%", left: "60%", top: "50%", r: "50% 50% 55% 45%/50% 45% 55% 50%" },
+        ].map((blob, i) => (
+          <div
+            key={i}
+            className="absolute bg-zinc-700 animate-pulse"
+            style={{
+              width: blob.w,
+              height: blob.h,
+              left: blob.left,
+              top: blob.top,
+              borderRadius: blob.r,
+              animationDelay: `${i * 0.1}s`,
+            }}
+          />
+        ))}
+      </div>
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-zinc-700 font-mono">
+        Loading map data…
+      </div>
+    </div>
+  );
+}
+
 export function WorldMapSection() {
   const [active, setActive] = useState<DemoProject | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const mapLoadedRef = useRef(false);
 
   const toggle = (p: DemoProject) =>
     setActive((prev) => (prev?.id === p.id ? null : p));
@@ -119,19 +174,25 @@ export function WorldMapSection() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Map */}
-          <div className="lg:col-span-8 rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+          <div className="lg:col-span-8 rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden relative min-h-[260px]">
+            {/* Skeleton shown until geographies load */}
+            {!mapLoaded && <MapSkeleton />}
+
             <ComposableMap
               projection="geoNaturalEarth1"
-              style={{ width: "100%", height: "auto" }}
+              style={{ width: "100%", height: "auto", display: mapLoaded ? "block" : "none" }}
               projectionConfig={{ scale: 150, center: [15, 10] }}
             >
               <Geographies geography={GEO_URL}>
-                {({ geographies }: { geographies: any[] }) =>
-                  geographies.map((geo) => {
+                {({ geographies }: { geographies: any[] }) => {
+                  // Mark map as loaded on first non-empty render
+                  if (geographies.length > 0 && !mapLoadedRef.current) {
+                    mapLoadedRef.current = true;
+                    setTimeout(() => setMapLoaded(true), 0);
+                  }
+                  return geographies.map((geo) => {
                     const id = geo.id?.toString();
-                    const project = DEMO_PROJECTS.find(
-                      (p) => p.countryCode === id
-                    );
+                    const project = DEMO_PROJECTS.find((p) => p.countryCode === id);
                     return (
                       <GeoShape
                         key={geo.rsmKey}
@@ -142,32 +203,77 @@ export function WorldMapSection() {
                         onClick={() => project && toggle(project)}
                       />
                     );
-                  })
-                }
+                  });
+                }}
               </Geographies>
 
-              {DEMO_PROJECTS.map((p) => (
-                <Marker
-                  key={p.id}
-                  coordinates={[p.lng, p.lat]}
-                  onClick={() => toggle(p)}
-                >
-                  <motion.g
-                    animate={{ scale: active?.id === p.id ? 1.4 : 1 }}
-                    style={{ cursor: "pointer" }}
+              {DEMO_PROJECTS.map((p) => {
+                const dir = LABEL_DIR[p.id] ?? { nx: 15, ny: -1, sx: 15, sy: 8, anchor: "start" };
+                return (
+                  <Marker
+                    key={p.id}
+                    coordinates={[p.lng, p.lat]}
+                    onClick={() => toggle(p)}
                   >
-                    <circle r={5} fill={p.scoreColor} opacity={0.9} />
-                    <circle r={9} fill={p.scoreColor} opacity={0.18} />
-                    <circle
-                      r={13}
-                      fill="none"
-                      stroke={p.scoreColor}
-                      strokeWidth={1}
-                      opacity={0.35}
-                    />
-                  </motion.g>
-                </Marker>
-              ))}
+                    <motion.g
+                      animate={{ scale: active?.id === p.id ? 1.4 : 1 }}
+                      style={{ cursor: "pointer" }}
+                    >
+                      {/* Dot + rings */}
+                      <circle r={5} fill={p.scoreColor} opacity={0.9} />
+                      <circle r={9} fill={p.scoreColor} opacity={0.18} />
+                      <circle
+                        r={13}
+                        fill="none"
+                        stroke={p.scoreColor}
+                        strokeWidth={1}
+                        opacity={0.35}
+                      />
+
+                      {/* Country name */}
+                      <text
+                        x={dir.nx}
+                        y={dir.ny}
+                        textAnchor={dir.anchor}
+                        style={{
+                          fontFamily: "ui-monospace, monospace",
+                          fontSize: 7,
+                          fontWeight: 700,
+                          fill: p.scoreColor,
+                          stroke: "#09090b",
+                          strokeWidth: 3,
+                          paintOrder: "stroke fill",
+                          pointerEvents: "none",
+                          userSelect: "none",
+                        } as React.CSSProperties}
+                      >
+                        {p.country}
+                      </text>
+
+                      {/* Score */}
+                      <text
+                        x={dir.sx}
+                        y={dir.sy}
+                        textAnchor={dir.anchor}
+                        style={{
+                          fontFamily: "ui-monospace, monospace",
+                          fontSize: 6,
+                          fontWeight: 600,
+                          fill: p.scoreColor,
+                          stroke: "#09090b",
+                          strokeWidth: 2.5,
+                          paintOrder: "stroke fill",
+                          opacity: 0.85,
+                          pointerEvents: "none",
+                          userSelect: "none",
+                        } as React.CSSProperties}
+                      >
+                        {p.score}/100
+                      </text>
+                    </motion.g>
+                  </Marker>
+                );
+              })}
             </ComposableMap>
           </div>
 
@@ -260,9 +366,9 @@ export function WorldMapSection() {
                       </div>
                     </div>
 
-                    {/* CTA */}
+                    {/* CTA — includes project id so the simulate page shows the right details */}
                     <Link
-                      href={`/simulate/${active.simId}?intervention=${active.interventionId}&demo=1`}
+                      href={`/simulate/${active.simId}?intervention=${active.interventionId}&demo=1&project=${active.id}`}
                       className="flex items-center justify-between w-full rounded-lg border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 px-4 py-2.5 text-sm text-zinc-200 transition-colors group"
                     >
                       <span>

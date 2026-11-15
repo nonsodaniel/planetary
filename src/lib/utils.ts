@@ -8,6 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 
 /** Format large numbers with SI suffixes */
 export function fmtNum(n: number, decimals = 1): string {
+  if (!isFinite(n) || isNaN(n)) return "—";
   if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(decimals)}B`;
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(decimals)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(decimals)}K`;
@@ -16,11 +17,13 @@ export function fmtNum(n: number, decimals = 1): string {
 
 /** Format tons CO2 with units */
 export function fmtCO2(tons: number): string {
+  if (!isFinite(tons) || isNaN(tons)) return "— tCO₂";
   return `${fmtNum(tons)} tCO₂`;
 }
 
 /** Format dollars */
 export function fmtUSD(usd_m: number): string {
+  if (!isFinite(usd_m) || isNaN(usd_m)) return "—";
   if (usd_m >= 1000) return `$${(usd_m / 1000).toFixed(1)}B`;
   if (usd_m >= 1) return `$${usd_m.toFixed(0)}M`;
   return `$${(usd_m * 1000).toFixed(0)}K`;
@@ -28,6 +31,7 @@ export function fmtUSD(usd_m: number): string {
 
 /** Format percentage */
 export function fmtPct(value: number, decimals = 0): string {
+  if (!isFinite(value) || isNaN(value)) return "—";
   return `${value >= 0 ? "+" : ""}${value.toFixed(decimals)}%`;
 }
 

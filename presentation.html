@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Planetary — Climate Decision Engine</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:   #040d1a;
+    --navy2:  #071428;
+    --card:   #0a1929;
+    --border: rgba(99,179,237,0.12);
+    --blue:   #3b82f6;
+    --cyan:   #22d3ee;
+    --green:  #4ade80;
+    --amber:  #fbbf24;
+    --red:    #f87171;
+    --purple: #a78bfa;
+    --white:  #f0f8ff;
+    --muted:  #94a3b8;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 48px;
+    background: rgba(4,13,26,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; color: var(--white); }
+  .nav-logo span { color: var(--cyan); }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a {
+    color: var(--muted); font-size: 13px; font-weight: 500;
+    text-decoration: none; letter-spacing: 0.3px;
+    transition: color .2s;
+  }
+  .nav-links a:hover { color: var(--white); }
+
+  /* ── SLIDE WRAPPER ── */
+  .slide {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 120px 80px 80px;
+    position: relative; overflow: hidden;
+  }
+  .slide + .slide { border-top: 1px solid var(--border); }
+
+  /* ── BACKGROUND ORBS ── */
+  .orb {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    filter: blur(80px); opacity: 0.18;
+  }
+  .orb-blue  { background: #3b82f6; }
+  .orb-cyan  { background: #06b6d4; }
+  .orb-green { background: #22c55e; }
+  .orb-purple{ background: #8b5cf6; }
+
+  /* ── TYPOGRAPHY ── */
+  .label {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--cyan);
+    margin-bottom: 20px;
+  }
+  .label::before {
+    content: ''; display: block;
+    width: 24px; height: 2px; background: var(--cyan);
+  }
+
+  h1 {
+    font-size: clamp(48px, 6vw, 86px);
+    font-weight: 900; line-height: 1.0;
+    letter-spacing: -2px;
+    color: var(--white);
+  }
+  h1 .accent { color: var(--cyan); }
+  h1 .accent-green { color: var(--green); }
+  h1 .accent-amber { color: var(--amber); }
+
+  h2 {
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 800; line-height: 1.1;
+    letter-spacing: -1px;
+  }
+  h3 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  h4 { font-size: 15px; font-weight: 600; }
+
+  p.lead {
+    font-size: 18px; color: var(--muted); line-height: 1.7;
+    max-width: 640px;
+  }
+  p.body { font-size: 15px; color: var(--muted); line-height: 1.7; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(99,179,237,0.3), transparent);
+  }
+  .card-sm { padding: 20px; border-radius: 12px; }
+  .card-glow-green { box-shadow: 0 0 32px rgba(74,222,128,0.08); border-color: rgba(74,222,128,0.2); }
+  .card-glow-red   { box-shadow: 0 0 32px rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.2); }
+  .card-glow-blue  { box-shadow: 0 0 32px rgba(59,130,246,0.1);  border-color: rgba(59,130,246,0.2); }
+  .card-glow-amber { box-shadow: 0 0 32px rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.2); }
+
+  /* ── GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .badge-green  { background: rgba(74,222,128,0.15);  color: var(--green); border: 1px solid rgba(74,222,128,0.3); }
+  .badge-amber  { background: rgba(251,191,36,0.15);  color: var(--amber); border: 1px solid rgba(251,191,36,0.3); }
+  .badge-red    { background: rgba(248,113,113,0.15); color: var(--red);   border: 1px solid rgba(248,113,113,0.3); }
+  .badge-blue   { background: rgba(59,130,246,0.15);  color: #93c5fd;      border: 1px solid rgba(59,130,246,0.3); }
+  .badge-purple { background: rgba(167,139,250,0.15); color: var(--purple);border: 1px solid rgba(167,139,250,0.3); }
+  .badge-cyan   { background: rgba(34,211,238,0.12);  color: var(--cyan);  border: 1px solid rgba(34,211,238,0.25); }
+
+  /* ── SCORE RING ── */
+  .score-ring-wrap {
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .score-ring {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .score-ring svg {
+    position: absolute; top: 0; left: 0;
+    transform: rotate(-90deg);
+  }
+  .score-num {
+    font-size: 30px; font-weight: 900; letter-spacing: -1px;
+    position: relative; z-index: 1;
+  }
+  .score-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--muted);
+    position: relative; z-index: 1;
+  }
+
+  /* ── STAT BLOCKS ── */
+  .stat-block { display: flex; flex-direction: column; gap: 4px; }
+  .stat-num {
+    font-size: 44px; font-weight: 900;
+    letter-spacing: -2px; line-height: 1;
+  }
+  .stat-unit { font-size: 20px; font-weight: 500; color: var(--muted); }
+  .stat-desc { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+  /* ── PROGRESS BAR ── */
+  .prog-wrap { display: flex; flex-direction: column; gap: 8px; }
+  .prog-row   { display: flex; align-items: center; gap: 12px; }
+  .prog-label { font-size: 12px; color: var(--muted); width: 160px; flex-shrink: 0; }
+  .prog-bar-bg {
+    flex: 1; height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 999px; overflow: hidden;
+  }
+  .prog-bar-fill { height: 100%; border-radius: 999px; }
+  .prog-val { font-size: 12px; font-weight: 700; width: 36px; text-align: right; }
+
+  /* ── TIMELINE BARS ── */
+  .timeline-chart {
+    display: flex; align-items: flex-end; gap: 6px;
+    height: 100px; padding: 0 4px;
+  }
+  .timeline-bar {
+    flex: 1; border-radius: 4px 4px 0 0;
+    background: linear-gradient(to top, var(--blue), var(--cyan));
+    opacity: 0.85;
+    transition: opacity .2s;
+    position: relative;
+  }
+  .timeline-bar:hover { opacity: 1; }
+
+  /* ── CODE MONO ── */
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--cyan);
+  }
+
+  /* ── STEP NUMBER ── */
+  .step-num {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 900; color: var(--navy);
+    flex-shrink: 0;
+  }
+
+  /* ── ICON BOX ── */
+  .icon-box {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    width: 60px; height: 3px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--cyan), var(--blue));
+    margin: 20px 0;
+  }
+
+  /* ── CLAIM BAR ── */
+  .claim-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .claim-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  .claim-bar-bg { width: 100%; height: 10px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
+  .claim-bar-fill { height: 100%; border-radius: 999px; }
+
+  /* ── SLIDE-SPECIFIC OVERRIDES ── */
+
+  /* 1. COVER */
+  #cover {
+    background: radial-gradient(ellipse 100% 80% at 60% 50%, rgba(34,211,238,0.07) 0%, transparent 70%),
+                radial-gradient(ellipse 60% 60% at 20% 80%, rgba(59,130,246,0.06) 0%, transparent 60%),
+                var(--navy);
+    min-height: 100vh;
+    padding-top: 80px;
+  }
+
+  .cover-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 64px; align-items: center;
+  }
+
+  .cover-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+
+  .planet-graphic {
+    width: 420px; height: 420px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%,
+      rgba(34,211,238,0.25) 0%,
+      rgba(59,130,246,0.15) 30%,
+      rgba(4,13,26,0.9) 70%,
+      rgba(4,13,26,1) 100%);
+    border: 1px solid rgba(34,211,238,0.2);
+    box-shadow: 0 0 80px rgba(34,211,238,0.12), 0 0 160px rgba(59,130,246,0.08);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    animation: rotate-slow 40s linear infinite;
+  }
+
+  @keyframes rotate-slow {
+    from { box-shadow: 0 0 80px rgba(34,211,238,0.12), 0 0 160px rgba(59,130,246,0.08); }
+    50%  { box-shadow: 0 0 100px rgba(34,211,238,0.18), 0 0 200px rgba(59,130,246,0.12); }
+    to   { box-shadow: 0 0 80px rgba(34,211,238,0.12), 0 0 160px rgba(59,130,246,0.08); }
+  }
+
+  .planet-inner {
+    font-size: 96px; line-height: 1;
+    filter: drop-shadow(0 0 32px rgba(34,211,238,0.5));
+  }
+
+  .orbit {
+    position: absolute; border-radius: 50%;
+    border: 1px solid rgba(99,179,237,0.12);
+    animation: orbit-spin linear infinite;
+  }
+  .orbit-1 { width: 480px; height: 480px; animation-duration: 20s; }
+  .orbit-2 { width: 560px; height: 560px; animation-duration: 35s; animation-direction: reverse; }
+
+  @keyframes orbit-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  .orbit-dot {
+    position: absolute; width: 8px; height: 8px; border-radius: 50%;
+    top: 50%; transform: translateY(-50%);
+  }
+  .orbit-1 .orbit-dot { background: var(--cyan); right: -4px; box-shadow: 0 0 10px var(--cyan); }
+  .orbit-2 .orbit-dot { background: var(--green); left: -4px; box-shadow: 0 0 10px var(--green); }
+
+  /* ── STARS BG ── */
+  .stars {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0; overflow: hidden;
+  }
+  .star {
+    position: absolute; background: white; border-radius: 50%;
+    animation: twinkle ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* ── TECH PILL ── */
+  .tech-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    font-size: 12px; font-weight: 500; color: var(--muted);
+  }
+  .tech-pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+
+  /* ── RISK ITEM ── */
+  .risk-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .risk-item:last-child { border-bottom: none; }
+  .risk-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    margin-top: 6px; flex-shrink: 0;
+  }
+
+  /* ── PROJECT CARD ── */
+  .project-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex; flex-direction: column; gap: 16px;
+    position: relative; overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .project-card:hover {
+    transform: translateY(-2px);
+  }
+  .project-card::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+  }
+  .project-card.green::after { background: linear-gradient(90deg, var(--green), var(--cyan)); }
+  .project-card.amber::after { background: linear-gradient(90deg, var(--amber), #f59e0b); }
+  .project-card.red::after   { background: linear-gradient(90deg, var(--red), #ef4444); }
+
+  /* ── ALLOCATION BAR ── */
+  .alloc-bar { display: flex; gap: 0; border-radius: 8px; overflow: hidden; height: 32px; }
+  .alloc-seg {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--navy);
+    white-space: nowrap; overflow: hidden;
+  }
+
+  /* ── FEATURE ROW ── */
+  .feature-row {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .feature-row:last-child { border-bottom: none; }
+
+  /* ── CTA BOX ── */
+  .cta-box {
+    background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(34,211,238,0.08));
+    border: 1px solid rgba(59,130,246,0.3);
+    border-radius: 20px;
+    padding: 48px;
+    text-align: center;
+    position: relative; overflow: hidden;
+  }
+
+  /* ── SLIDE COUNTER ── */
+  .slide-num {
+    position: absolute; bottom: 32px; right: 48px;
+    font-size: 11px; font-weight: 500;
+    color: rgba(148,163,184,0.4);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  /* ── QUOTE ── */
+  blockquote {
+    border-left: 3px solid var(--cyan);
+    padding-left: 24px;
+    color: var(--muted);
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.7;
+  }
+
+  /* ── TABLE ── */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--muted);
+    padding: 10px 16px; text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 12px 16px; font-size: 14px;
+    border-bottom: 1px solid rgba(99,179,237,0.06);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* ── SPACER ── */
+  .gap-8  { gap: 8px; }
+  .gap-12 { gap: 12px; }
+  .gap-16 { gap: 16px; }
+  .gap-24 { gap: 24px; }
+  .gap-32 { gap: 32px; }
+  .gap-40 { gap: 40px; }
+  .gap-48 { gap: 48px; }
+  .gap-64 { gap: 64px; }
+  .mt-8  { margin-top: 8px; }
+  .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-24 { margin-top: 24px; }
+  .mt-32 { margin-top: 32px; }
+  .mt-40 { margin-top: 40px; }
+  .mt-48 { margin-top: 48px; }
+  .mb-8  { margin-bottom: 8px; }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-24 { margin-bottom: 24px; }
+  .mb-32 { margin-bottom: 32px; }
+  .flex  { display: flex; }
+  .flex-col { flex-direction: column; }
+  .items-center { align-items: center; }
+  .items-start  { align-items: flex-start; }
+  .justify-between { justify-content: space-between; }
+  .flex-wrap { flex-wrap: wrap; }
+  .col-span-2 { grid-column: span 2; }
+
+  .text-green  { color: var(--green); }
+  .text-amber  { color: var(--amber); }
+  .text-red    { color: var(--red); }
+  .text-cyan   { color: var(--cyan); }
+  .text-blue   { color: var(--blue); }
+  .text-purple { color: var(--purple); }
+  .text-muted  { color: var(--muted); }
+  .text-white  { color: var(--white); }
+  .text-sm     { font-size: 13px; }
+  .text-xs     { font-size: 11px; }
+  .text-lg     { font-size: 18px; }
+  .font-bold   { font-weight: 700; }
+  .font-black  { font-weight: 900; }
+
+  .w-full { width: 100%; }
+  .relative { position: relative; }
+  .z1 { position: relative; z-index: 1; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--navy); }
+  ::-webkit-scrollbar-thumb { background: rgba(99,179,237,0.2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- STARS -->
+<div class="stars" id="stars"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">🌍 <span>Planetary</span></div>
+  <div class="nav-links">
+    <a href="#problem">The Problem</a>
+    <a href="#solution">Solution</a>
+    <a href="#features">Features</a>
+    <a href="#score">Impact Score</a>
+    <a href="#projects">Projects</a>
+    <a href="#tech">Tech Stack</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 1 — COVER
+════════════════════════════════════════════════════ -->
+<section class="slide" id="cover" style="padding-top: 100px; padding-bottom: 60px;">
+  <div class="cover-grid z1">
+    <div>
+      <div class="cover-badges">
+        <span class="badge badge-cyan">🏆 Hackathon Submission</span>
+        <span class="badge badge-blue">NVIDIA Challenge</span>
+        <span class="badge badge-purple">Climate × AI</span>
+      </div>
+
+      <div class="label">Climate Verification Engine</div>
+
+      <h1>
+        Stop trusting<br>
+        <span class="accent">marketing.</span><br>
+        Trust <span class="accent-green">physics.</span>
+      </h1>
+
+      <div class="divider"></div>
+
+      <p class="lead mt-24" style="max-width: 520px;">
+        Planetary uses NVIDIA AI to simulate the real-world impact of climate interventions
+        — detecting greenwashing and returning a verified 0–100 score backed by actual physics.
+      </p>
+
+      <div class="flex flex-wrap gap-12 mt-32">
+        <div class="tech-pill"><div class="dot" style="background:var(--green)"></div> NVIDIA NIM</div>
+        <div class="tech-pill"><div class="dot" style="background:var(--cyan)"></div> Cosmos World FM</div>
+        <div class="tech-pill"><div class="dot" style="background:var(--purple)"></div> NVIDIA cuOpt</div>
+        <div class="tech-pill"><div class="dot" style="background:var(--amber)"></div> Cala Knowledge API</div>
+        <div class="tech-pill"><div class="dot" style="background:var(--blue)"></div> Context.dev</div>
+      </div>
+
+      <div class="flex gap-32 mt-40">
+        <div class="stat-block">
+          <div class="stat-num text-cyan">0–100</div>
+          <div class="stat-desc">Impact Score™</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-num text-green">8</div>
+          <div class="stat-desc">Real-world projects</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-num text-amber">10yr</div>
+          <div class="stat-desc">Physics projection</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between" style="flex-direction: column; align-items: center; gap: 24px;">
+      <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 420px; height: 420px;">
+        <div class="orbit orbit-1"><div class="orbit-dot"></div></div>
+        <div class="orbit orbit-2"><div class="orbit-dot"></div></div>
+        <div class="planet-graphic">
+          <div class="planet-inner">🌍</div>
+        </div>
+      </div>
+
+      <div class="flex gap-16">
+        <div class="card card-sm text-center" style="min-width: 110px;">
+          <div style="font-size: 26px; font-weight: 900; color: var(--green);">91</div>
+          <div style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">Dogger Bank</div>
+          <div class="badge badge-green" style="margin-top: 8px; font-size: 10px;">✓ Legit</div>
+        </div>
+        <div class="card card-sm text-center" style="min-width: 110px;">
+          <div style="font-size: 26px; font-weight: 900; color: var(--amber);">72</div>
+          <div style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">Congo Basin</div>
+          <div class="badge badge-amber" style="margin-top: 8px; font-size: 10px;">⚠ Overclaim</div>
+        </div>
+        <div class="card card-sm text-center" style="min-width: 110px;">
+          <div style="font-size: 26px; font-weight: 900; color: var(--red);">32</div>
+          <div style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">Kariba REDD+</div>
+          <div class="badge badge-red" style="margin-top: 8px; font-size: 10px;">🚨 Flagged</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">01 / 10</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 2 — THE PROBLEM
+════════════════════════════════════════════════════ -->
+<section class="slide" id="problem" style="background: radial-gradient(ellipse 80% 60% at 80% 50%, rgba(248,113,113,0.05) 0%, transparent 60%);">
+  <div class="orb orb-red" style="width:500px;height:500px;top:-100px;right:-100px;"></div>
+  <div class="z1">
+    <div class="label">The Problem</div>
+    <h2>The carbon credit market<br>is built on <span style="color:var(--red)">broken promises.</span></h2>
+    <div class="divider"></div>
+
+    <div class="grid-2 mt-40" style="gap: 40px; align-items: start;">
+      <div class="flex flex-col gap-24">
+        <p class="lead">
+          Every year, companies pay <strong style="color:var(--white)">billions</strong> for carbon credits to "offset" their pollution —
+          paying someone else to plant trees or build solar farms instead of cutting their own emissions.
+        </p>
+        <p class="lead">
+          Independent research shows most credits overstate their impact by
+          <strong style="color:var(--red)">2–5×.</strong> Forests that were never at risk.
+          Trees that were already there. Numbers that were simply made up.
+        </p>
+        <blockquote>
+          "That's greenwashing — paying for impact that doesn't exist."
+        </blockquote>
+        <p class="text-sm text-muted" style="font-style: italic;">
+          Based on independent analyses of Verra-certified REDD+ projects<br>
+          (Science, 2023 · The Guardian, 2023)
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-20">
+        <div class="card card-glow-red">
+          <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 20px;">Real Example: Verra-certified Carbon Credits</div>
+          <div class="claim-row">
+            <div class="claim-label">Credits Sold</div>
+            <div class="claim-bar-bg"><div class="claim-bar-fill" style="width:100%; background: rgba(248,113,113,0.6);"></div></div>
+            <div style="font-size: 13px; font-weight: 700; margin-left: 8px; white-space: nowrap;">10,000 tCO₂</div>
+          </div>
+          <div class="claim-row">
+            <div class="claim-label">CO₂ Actually Removed</div>
+            <div class="claim-bar-bg"><div class="claim-bar-fill" style="width:22%; background: var(--green);"></div></div>
+            <div style="font-size: 13px; font-weight: 700; margin-left: 8px; white-space: nowrap; color: var(--green);">~2,200 tCO₂</div>
+          </div>
+          <div style="margin-top: 16px; padding: 12px 16px; background: rgba(248,113,113,0.1); border-radius: 8px; border: 1px solid rgba(248,113,113,0.2);">
+            <div style="font-size: 20px; font-weight: 900; color: var(--red);">78% of credits are fictitious</div>
+            <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Buyers paid for 10,000 tons. Only 2,200 exist.</div>
+          </div>
+        </div>
+
+        <div class="grid-3" style="gap: 16px;">
+          <div class="card card-sm text-center">
+            <div style="font-size: 32px; font-weight: 900; color: var(--red);">$1B+</div>
+            <div class="text-xs text-muted mt-8">spent on<br>unverified credits</div>
+          </div>
+          <div class="card card-sm text-center">
+            <div style="font-size: 32px; font-weight: 900; color: var(--amber);">90%</div>
+            <div class="text-xs text-muted mt-8">of REDD+ credits<br>overstated</div>
+          </div>
+          <div class="card card-sm text-center">
+            <div style="font-size: 32px; font-weight: 900; color: var(--red);">0</div>
+            <div class="text-xs text-muted mt-8">tools to verify<br>before investing</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">02 / 10</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 3 — THE SOLUTION
+════════════════════════════════════════════════════ -->
+<section class="slide" id="solution" style="background: radial-gradient(ellipse 70% 60% at 30% 50%, rgba(34,211,238,0.06) 0%, transparent 60%);">
+  <div class="orb orb-cyan" style="width:600px;height:600px;top:-100px;left:-200px;"></div>
+  <div class="z1">
+    <div class="label">The Solution</div>
+    <h2>We verify climate projects<br>using <span class="text-cyan">real physics.</span></h2>
+    <div class="divider"></div>
+
+    <p class="lead mt-24" style="max-width: 700px;">
+      Give Planetary any climate project — a forest, a solar farm, a carbon credit scheme.
+      We simulate its actual physics using NVIDIA AI models and return a verified score.
+      No marketing. Just numbers.
+    </p>
+
+    <div class="flex gap-24 mt-48" style="align-items: stretch;">
+
+      <div class="card card-glow-blue flex flex-col gap-16" style="flex: 1;">
+        <div class="flex items-center gap-16">
+          <div class="step-num">1</div>
+          <div>
+            <h4 class="text-white">Find the project</h4>
+            <div class="text-sm text-muted">Registry + Cala Knowledge API</div>
+          </div>
+        </div>
+        <p class="body">We pull real data directly from official climate registries like Verra and Gold Standard. Paste a project ID — we do the rest. No self-reported numbers.</p>
+        <div class="mono" style="font-size: 11px; color: var(--cyan); background: rgba(34,211,238,0.06); padding: 10px 14px; border-radius: 8px;">
+          → verra.org/VCS-612<br>
+          → goldstandard.org/GS-1234<br>
+          → americancarbonregistry.org/…
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; color: var(--border); font-size: 24px;">→</div>
+
+      <div class="card card-glow-blue flex flex-col gap-16" style="flex: 1;">
+        <div class="flex items-center gap-16">
+          <div class="step-num">2</div>
+          <div>
+            <h4 class="text-white">Simulate the science</h4>
+            <div class="text-sm text-muted">NVIDIA NIM + Cosmos + cuOpt</div>
+          </div>
+        </div>
+        <p class="body">NVIDIA AI models run the actual physics: how many trees survive, how much CO₂ they absorb, what changes in temperature and rainfall — across a full 10-year horizon.</p>
+        <div class="flex flex-wrap gap-8">
+          <span class="badge badge-blue">NIM Llama 3.3-70B</span>
+          <span class="badge badge-cyan">Cosmos WFM</span>
+          <span class="badge badge-purple">cuOpt</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; color: var(--border); font-size: 24px;">→</div>
+
+      <div class="card card-glow-green flex flex-col gap-16" style="flex: 1;">
+        <div class="flex items-center gap-16">
+          <div class="step-num">3</div>
+          <div>
+            <h4 class="text-white">Get a verified score</h4>
+            <div class="text-sm text-muted">Planetary Impact Score™ (0–100)</div>
+          </div>
+        </div>
+        <p class="body">Every project gets a 0–100 Planetary Impact Score. High score = the claims are real. Low score = red flag. No jargon, no guesswork — pure physics-backed signal.</p>
+        <div class="flex gap-12">
+          <span class="badge badge-green">75–100 Legit</span>
+          <span class="badge badge-amber">50–74 Overclaim</span>
+          <span class="badge badge-red">0–49 Flag</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-32" style="background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(34,211,238,0.05)); border-color: rgba(34,211,238,0.2);">
+      <div class="grid-4" style="text-align: center;">
+        <div>
+          <div style="font-size: 28px; font-weight: 900; color: var(--cyan);">8</div>
+          <div class="text-xs text-muted mt-8">Projects Analysed</div>
+        </div>
+        <div>
+          <div style="font-size: 28px; font-weight: 900; color: var(--green);">5</div>
+          <div class="text-xs text-muted mt-8">Claims Verified Accurate</div>
+        </div>
+        <div>
+          <div style="font-size: 28px; font-weight: 900; color: var(--amber);">2</div>
+          <div class="text-xs text-muted mt-8">Overclaiming Detected</div>
+        </div>
+        <div>
+          <div style="font-size: 28px; font-weight: 900; color: var(--red);">1</div>
+          <div class="text-xs text-muted mt-8">Greenwashing Flagged</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">03 / 10</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 4 — IMPACT SCORE
+════════════════════════════════════════════════════ -->
+<section class="slide" id="score" style="background: radial-gradient(ellipse 60% 60% at 70% 40%, rgba(167,139,250,0.06) 0%, transparent 60%);">
+  <div class="orb orb-purple" style="width:500px;height:500px;bottom:-100px;right:-100px;"></div>
+  <div class="z1">
+    <div class="label">The Algorithm</div>
+    <h2>Planetary Impact Score™</h2>
+    <div class="divider"></div>
+    <p class="lead mt-16">A transparent 0–100 composite built from six physics-grounded dimensions. Every point is traceable to a data source.</p>
+
+    <div class="grid-2 mt-40" style="gap: 40px; align-items: start;">
+
+      <div>
+        <div class="card">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 20px;">6 Scoring Dimensions (Max Points)</div>
+          <div class="prog-wrap" style="gap: 14px;">
+            <div class="prog-row">
+              <div class="prog-label">Carbon Effectiveness</div>
+              <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:100%; background: linear-gradient(90deg, var(--cyan), var(--blue));"></div></div>
+              <div class="prog-val text-cyan">30</div>
+            </div>
+            <div class="prog-row">
+              <div class="prog-label">Additionality</div>
+              <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:67%; background: linear-gradient(90deg, var(--blue), var(--purple));"></div></div>
+              <div class="prog-val text-blue">20</div>
+            </div>
+            <div class="prog-row">
+              <div class="prog-label">Permanence</div>
+              <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:67%; background: linear-gradient(90deg, var(--purple), #818cf8);"></div></div>
+              <div class="prog-val text-purple">20</div>
+            </div>
+            <div class="prog-row">
+              <div class="prog-label">Biodiversity</div>
+              <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:50%; background: linear-gradient(90deg, var(--green), #86efac);"></div></div>
+              <div class="prog-val text-green">15</div>
+            </div>
+            <div class="prog-row">
+              <div class="prog-label">Community Benefit</div>
+              <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:33%; background: linear-gradient(90deg, var(--amber), #fcd34d);"></div></div>
+              <div class="prog-val text-amber">10</div>
+            </div>
+            <div class="prog-row">
+              <div class="prog-label">Verification Quality</div>
+              <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:17%; background: rgba(248,113,113,0.7);"></div></div>
+              <div class="prog-val text-red">5</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-24">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">Score Tiers</div>
+          <table>
+            <thead><tr><th>Range</th><th>Tier</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td class="mono text-green">90–100</td><td><span class="badge badge-cyan">Platinum</span></td><td class="text-sm text-muted">Exceptional, fully verified</td></tr>
+              <tr><td class="mono text-green">75–89</td><td><span class="badge badge-green">Gold</span></td><td class="text-sm text-muted">Credible, safe to invest</td></tr>
+              <tr><td class="mono" style="color:#86efac;">60–74</td><td><span class="badge badge-blue">Silver</span></td><td class="text-sm text-muted">Mixed evidence, invest with caution</td></tr>
+              <tr><td class="mono text-amber">45–59</td><td><span class="badge badge-amber">Bronze</span></td><td class="text-sm text-muted">Risky, significant uncertainties</td></tr>
+              <tr><td class="mono" style="color:#fb923c;">30–44</td><td><span class="badge badge-amber" style="color:#fb923c; border-color:rgba(251,146,60,0.4);">Caution</span></td><td class="text-sm text-muted">Significant overclaiming</td></tr>
+              <tr><td class="mono text-red">0–29</td><td><span class="badge badge-red">🚨 Flagged</span></td><td class="text-sm text-muted">Severe greenwashing</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-20">
+        <div class="card">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">Greenwashing Detection Formula</div>
+          <div style="font-size: 13px; color: var(--muted); margin-bottom: 16px;">For every simulation, Planetary computes an accuracy ratio:</div>
+          <div style="background: rgba(34,211,238,0.06); border: 1px solid rgba(34,211,238,0.15); border-radius: 10px; padding: 16px; text-align: center;">
+            <div class="mono" style="font-size: 20px; color: var(--cyan);">
+              accuracy = simulated CO₂ ÷ claimed CO₂
+            </div>
+          </div>
+          <div class="mt-16 prog-wrap" style="gap: 10px;">
+            <div class="prog-row">
+              <div class="prog-label text-xs">≥ 90% accurate</div>
+              <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:100%; background: var(--green); opacity: 0.7;"></div></div>
+              <div class="prog-val text-xs text-green">None</div>
+            </div>
+            <div class="prog-row">
+              <div class="prog-label text-xs">75–89% accurate</div>
+              <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:75%; background: #86efac; opacity: 0.7;"></div></div>
+              <div class="prog-val text-xs" style="color:#86efac;">Low</div>
+            </div>
+            <div class="prog-row">
+              <div class="prog-label text-xs">55–74% accurate</div>
+              <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:55%; background: var(--amber); opacity: 0.7;"></div></div>
+              <div class="prog-val text-xs text-amber">Mod.</div>
+            </div>
+            <div class="prog-row">
+              <div class="prog-label text-xs">35–54% accurate</div>
+              <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:35%; background: #fb923c; opacity: 0.7;"></div></div>
+              <div class="prog-val text-xs" style="color:#fb923c;">High</div>
+            </div>
+            <div class="prog-row">
+              <div class="prog-label text-xs">Below 35%</div>
+              <div class="prog-bar-bg"><div class="prog-bar-fill" style="width:22%; background: var(--red); opacity: 0.7;"></div></div>
+              <div class="prog-val text-xs text-red">Severe</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-glow-red">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px;">Live Example — Kariba REDD+ (Zimbabwe)</div>
+          <div class="flex gap-16 items-center">
+            <div>
+              <div style="font-size: 11px; color: var(--muted);">Claimed annual CO₂</div>
+              <div style="font-size: 22px; font-weight: 900; color: var(--red);">4.9M tons</div>
+            </div>
+            <div style="font-size: 24px; color: var(--muted);">→</div>
+            <div>
+              <div style="font-size: 11px; color: var(--muted);">Simulated actual</div>
+              <div style="font-size: 22px; font-weight: 900; color: var(--green);">1.1M tons</div>
+            </div>
+            <div style="font-size: 24px; color: var(--muted);">=</div>
+            <div>
+              <div style="font-size: 11px; color: var(--muted);">Accuracy ratio</div>
+              <div style="font-size: 22px; font-weight: 900; color: var(--red);">22%</div>
+            </div>
+          </div>
+          <div class="badge badge-red mt-12">🚨 Severe Greenwashing — 4.5× Overclaim</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">04 / 10</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 5 — DEMO PROJECTS
+════════════════════════════════════════════════════ -->
+<section class="slide" id="projects">
+  <div class="z1">
+    <div class="label">Real-World Data</div>
+    <h2>8 projects across <span class="text-cyan">5 continents</span></h2>
+    <div class="divider"></div>
+    <p class="lead mt-16">Pre-computed with full NVIDIA simulation results. No API key required to explore.</p>
+
+    <div class="grid-3 mt-40" style="gap: 20px;">
+
+      <div class="project-card green">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-xs text-muted">United Kingdom · Wind Farm</div>
+            <h4 class="text-white mt-8">Dogger Bank Wind Farm</h4>
+          </div>
+          <div class="score-ring-wrap">
+            <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(74,222,128,0.1); border: 2px solid var(--green); display: flex; align-items: center; justify-content: center; flex-direction: column;">
+              <div style="font-size: 20px; font-weight: 900; color: var(--green); line-height: 1;">91</div>
+              <div style="font-size: 8px; color: var(--muted);">/100</div>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-8">
+          <span class="badge badge-green">✓ Legit</span>
+          <span class="badge badge-cyan">3.6 GW</span>
+        </div>
+        <div class="grid-2" style="gap: 12px;">
+          <div><div class="text-xs text-muted">CO₂ (10yr)</div><div class="font-bold text-green">16.2M tCO₂</div></div>
+          <div><div class="text-xs text-muted">Investment</div><div class="font-bold text-white">$640M</div></div>
+        </div>
+        <p class="text-xs text-muted" style="font-style: italic; border-top: 1px solid var(--border); padding-top: 12px;">"Measured wind speeds match our models exactly. This is what good climate infrastructure looks like."</p>
+      </div>
+
+      <div class="project-card green">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-xs text-muted">Finland · Peatland Restoration</div>
+            <h4 class="text-white mt-8">Häme Peatland Restoration</h4>
+          </div>
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(74,222,128,0.1); border: 2px solid var(--green); display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <div style="font-size: 20px; font-weight: 900; color: var(--green); line-height: 1;">81</div>
+            <div style="font-size: 8px; color: var(--muted);">/100</div>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-8">
+          <span class="badge badge-green">✓ Accurate</span>
+          <span class="badge badge-blue">50K ha</span>
+        </div>
+        <div class="grid-2" style="gap: 12px;">
+          <div><div class="text-xs text-muted">CO₂ (10yr)</div><div class="font-bold text-green">2.1M tCO₂</div></div>
+          <div><div class="text-xs text-muted">Investment</div><div class="font-bold text-white">$38M</div></div>
+        </div>
+        <p class="text-xs text-muted" style="font-style: italic; border-top: 1px solid var(--border); padding-top: 12px;">"Peatland carbon accounting is among the most reliable in the field. 92% claim accuracy."</p>
+      </div>
+
+      <div class="project-card green">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-xs text-muted">Tunisia · Solar Farm</div>
+            <h4 class="text-white mt-8">Saharan Solar Array</h4>
+          </div>
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(74,222,128,0.1); border: 2px solid var(--green); display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <div style="font-size: 20px; font-weight: 900; color: var(--green); line-height: 1;">85</div>
+            <div style="font-size: 8px; color: var(--muted);">/100</div>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-8">
+          <span class="badge badge-green">✓ Accurate</span>
+          <span class="badge badge-blue">500 MW</span>
+        </div>
+        <div class="grid-2" style="gap: 12px;">
+          <div><div class="text-xs text-muted">CO₂ (10yr)</div><div class="font-bold text-green">7.2M tCO₂</div></div>
+          <div><div class="text-xs text-muted">Investment</div><div class="font-bold text-white">$200M</div></div>
+        </div>
+        <p class="text-xs text-muted" style="font-style: italic; border-top: 1px solid var(--border); padding-top: 12px;">"Producing 26.4% capacity vs. 27% claimed. This is exactly what it says it is."</p>
+      </div>
+
+      <div class="project-card amber">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-xs text-muted">DR Congo · Reforestation</div>
+            <h4 class="text-white mt-8">Congo Basin Reforestation</h4>
+          </div>
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(251,191,36,0.1); border: 2px solid var(--amber); display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <div style="font-size: 20px; font-weight: 900; color: var(--amber); line-height: 1;">72</div>
+            <div style="font-size: 8px; color: var(--muted);">/100</div>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-8">
+          <span class="badge badge-amber">⚠ Overclaim</span>
+          <span class="badge badge-blue">500K ha</span>
+        </div>
+        <div class="grid-2" style="gap: 12px;">
+          <div><div class="text-xs text-muted">CO₂ (10yr)</div><div class="font-bold text-amber">1.1M tCO₂</div></div>
+          <div><div class="text-xs text-muted">Claimed</div><div class="font-bold text-muted">2M tCO₂/yr</div></div>
+        </div>
+        <p class="text-xs text-muted" style="font-style: italic; border-top: 1px solid var(--border); padding-top: 12px;">"Claims 2M tons/yr, we found 1.1M — roughly half. The trees are real, but take years to reach full speed."</p>
+      </div>
+
+      <div class="project-card amber">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-xs text-muted">Bangladesh · Mangrove</div>
+            <h4 class="text-white mt-8">Sundarbans Mangroves</h4>
+          </div>
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(251,191,36,0.1); border: 2px solid var(--amber); display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <div style="font-size: 20px; font-weight: 900; color: var(--amber); line-height: 1;">74</div>
+            <div style="font-size: 8px; color: var(--muted);">/100</div>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-8">
+          <span class="badge badge-amber">⚠ Minor</span>
+          <span class="badge badge-blue">14K ha</span>
+        </div>
+        <div class="grid-2" style="gap: 12px;">
+          <div><div class="text-xs text-muted">Status</div><div class="font-bold text-amber">Minor overclaim</div></div>
+          <div><div class="text-xs text-muted">Benefit</div><div class="font-bold text-green">+Flood protection</div></div>
+        </div>
+        <p class="text-xs text-muted" style="font-style: italic; border-top: 1px solid var(--border); padding-top: 12px;">"Carbon storage slightly overstated, but the flood protection benefit is enormous."</p>
+      </div>
+
+      <div class="project-card red">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-xs text-muted">Zimbabwe · Carbon Credits</div>
+            <h4 class="text-white mt-8">Kariba REDD+ Credits</h4>
+          </div>
+          <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(248,113,113,0.1); border: 2px solid var(--red); display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <div style="font-size: 20px; font-weight: 900; color: var(--red); line-height: 1;">32</div>
+            <div style="font-size: 8px; color: var(--muted);">/100</div>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-8">
+          <span class="badge badge-red">🚨 Greenwashing</span>
+          <span class="badge badge-blue">785K ha</span>
+        </div>
+        <div class="grid-2" style="gap: 12px;">
+          <div><div class="text-xs text-muted">Claimed</div><div class="font-bold text-red">4.9M tCO₂/yr</div></div>
+          <div><div class="text-xs text-muted">Actual</div><div class="font-bold text-green">1.1M tCO₂/yr</div></div>
+        </div>
+        <p class="text-xs text-muted" style="font-style: italic; border-top: 1px solid var(--border); padding-top: 12px;">"Like buying fire insurance on a house that wasn't going to burn. Overclaiming by 4.5×. Avoid."</p>
+      </div>
+
+    </div>
+  </div>
+  <div class="slide-num">05 / 10</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 6 — FEATURES OVERVIEW
+════════════════════════════════════════════════════ -->
+<section class="slide" id="features" style="background: radial-gradient(ellipse 70% 50% at 50% 100%, rgba(59,130,246,0.06) 0%, transparent 60%);">
+  <div class="orb orb-blue" style="width:600px;height:400px;bottom:-100px;left:50%;transform:translateX(-50%);"></div>
+  <div class="z1">
+    <div class="label">Platform Features</div>
+    <h2>Everything you need to<br><span class="text-cyan">verify climate impact.</span></h2>
+    <div class="divider"></div>
+
+    <div class="grid-2 mt-40" style="gap: 32px; align-items: start;">
+
+      <div class="card">
+        <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;">🌍 Interactive 3D Globe</div>
+        <p class="body mt-12">Explore all 8 climate projects mapped on a rotating 3D Earth. Hover pins to see project snapshots. Click to open full simulation dashboards. Auto-rotation, zoom, and touch support.</p>
+        <div class="flex flex-wrap gap-8 mt-16">
+          <span class="badge badge-blue">react-globe.gl</span>
+          <span class="badge badge-cyan">Auto-rotate</span>
+          <span class="badge badge-blue">Hover cards</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;">🔍 Greenwashing Scanner</div>
+        <p class="body mt-12">Paste any Verra registry ID. Planetary auto-fetches the project via Context.dev, runs the full NVIDIA simulation pipeline, and returns a verified accuracy score — in seconds.</p>
+        <div class="flex flex-wrap gap-8 mt-16">
+          <span class="badge badge-purple">Context.dev</span>
+          <span class="badge badge-blue">Verra / GS / ACR</span>
+          <span class="badge badge-cyan">Auto-extract</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;">📊 10-Year Simulation Dashboard</div>
+        <p class="body mt-12">Full results dashboard with animated radial Impact Score gauge, 10-year CO₂ projection timeline, claim verification bars, risk matrix, and NVIDIA Cosmos ecosystem snapshots at years 0, 1, 5, and 10.</p>
+        <div class="flex flex-wrap gap-8 mt-16">
+          <span class="badge badge-green">Recharts</span>
+          <span class="badge badge-blue">Framer Motion</span>
+          <span class="badge badge-cyan">Live polling</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;">💼 Portfolio Optimizer</div>
+        <p class="body mt-12">Set a budget ($10M–$1B), configure max allocations, exclude intervention types. NVIDIA cuOpt finds the allocation mix that maximizes total CO₂ per dollar across all viable intervention categories.</p>
+        <div class="flex flex-wrap gap-8 mt-16">
+          <span class="badge badge-purple">cuOpt</span>
+          <span class="badge badge-amber">Budget presets</span>
+          <span class="badge badge-blue">CO₂/$ ranking</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;">⚠️ 7-Category Risk Matrix</div>
+        <p class="body mt-12">Auto-generated risk assessment across Physical, Policy, Social, Financial, Permanence, Methodology, and Technology categories. Each risk has severity (Low–Critical), probability %, and mitigation strategy.</p>
+        <div class="flex flex-wrap gap-8 mt-16">
+          <span class="badge badge-red">Critical risks</span>
+          <span class="badge badge-amber">Probability</span>
+          <span class="badge badge-green">Mitigations</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;">✍️ Manual Project Entry</div>
+        <p class="body mt-12">Not on a registry? Enter any climate intervention manually. 9 intervention types supported, with type-adaptive fields (area for land projects, capacity for energy). Runs the full NVIDIA pipeline on any input.</p>
+        <div class="flex flex-wrap gap-8 mt-16">
+          <span class="badge badge-blue">9 types</span>
+          <span class="badge badge-cyan">Zod validated</span>
+          <span class="badge badge-blue">9 certifications</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">06 / 10</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 7 — NVIDIA INTEGRATION
+════════════════════════════════════════════════════ -->
+<section class="slide" style="background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(34,211,238,0.05) 0%, transparent 60%);">
+  <div class="z1">
+    <div class="label">NVIDIA Integration</div>
+    <h2>Three NVIDIA models.<br>One <span class="text-cyan">physics engine.</span></h2>
+    <div class="divider"></div>
+
+    <div class="flex gap-24 mt-40" style="align-items: stretch;">
+
+      <div class="card card-glow-blue flex flex-col gap-20" style="flex: 1;">
+        <div class="flex items-center gap-16">
+          <div class="icon-box" style="background: rgba(59,130,246,0.15); font-size: 28px;">🧠</div>
+          <div>
+            <h3 class="text-white">NIM</h3>
+            <div class="text-xs text-muted" style="letter-spacing: 0.5px;">meta/llama-3.3-70b-instruct</div>
+          </div>
+        </div>
+        <div class="divider" style="width: 100%; margin: 0;"></div>
+        <div class="flex flex-col gap-12">
+          <div class="feature-row" style="padding: 10px 0;">
+            <div style="font-size: 16px;">📈</div>
+            <div><div class="font-bold text-sm text-white">10-year CO₂ projections</div><div class="text-xs text-muted">Annual sequestration using IPCC AR6 coefficients</div></div>
+          </div>
+          <div class="feature-row" style="padding: 10px 0;">
+            <div style="font-size: 16px;">🔍</div>
+            <div><div class="font-bold text-sm text-white">Key driver analysis</div><div class="text-xs text-muted">Why impact succeeds or fails for this project type</div></div>
+          </div>
+          <div class="feature-row" style="padding: 10px 0;">
+            <div style="font-size: 16px;">📊</div>
+            <div><div class="font-bold text-sm text-white">Comparable benchmarks</div><div class="text-xs text-muted">Similar verified projects with real-world scores</div></div>
+          </div>
+          <div class="feature-row" style="padding: 10px 0; border: none;">
+            <div style="font-size: 16px;">💼</div>
+            <div><div class="font-bold text-sm text-white">Portfolio reasoning</div><div class="text-xs text-muted">NIM-generated rationale for each allocation</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-glow-blue flex flex-col gap-20" style="flex: 1;">
+        <div class="flex items-center gap-16">
+          <div class="icon-box" style="background: rgba(34,211,238,0.12); font-size: 28px;">🌐</div>
+          <div>
+            <h3 class="text-white">Cosmos</h3>
+            <div class="text-xs text-muted" style="letter-spacing: 0.5px;">World Foundation Model</div>
+          </div>
+        </div>
+        <div class="divider" style="width: 100%; margin: 0;"></div>
+        <div class="flex flex-col gap-12">
+          <div class="feature-row" style="padding: 10px 0;">
+            <div style="font-size: 16px;">🌱</div>
+            <div><div class="font-bold text-sm text-white">Ecosystem snapshots</div><div class="text-xs text-muted">Physical state at years 0, 1, 5, and 10</div></div>
+          </div>
+          <div class="feature-row" style="padding: 10px 0;">
+            <div style="font-size: 16px;">🌡️</div>
+            <div><div class="font-bold text-sm text-white">Atmospheric parameters</div><div class="text-xs text-muted">CO₂ ppm delta, temperature change, albedo shift</div></div>
+          </div>
+          <div class="feature-row" style="padding: 10px 0;">
+            <div style="font-size: 16px;">🌧️</div>
+            <div><div class="font-bold text-sm text-white">Precipitation modeling</div><div class="text-xs text-muted">Rainfall anomaly per year per region</div></div>
+          </div>
+          <div class="feature-row" style="padding: 10px 0; border: none;">
+            <div style="font-size: 16px;">🎯</div>
+            <div><div class="font-bold text-sm text-white">Fidelity rating</div><div class="text-xs text-muted">Low / Medium / High simulation confidence</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-glow-blue flex flex-col gap-20" style="flex: 1;">
+        <div class="flex items-center gap-16">
+          <div class="icon-box" style="background: rgba(167,139,250,0.15); font-size: 28px;">⚡</div>
+          <div>
+            <h3 class="text-white">cuOpt</h3>
+            <div class="text-xs text-muted" style="letter-spacing: 0.5px;">Spatial Optimization Engine</div>
+          </div>
+        </div>
+        <div class="divider" style="width: 100%; margin: 0;"></div>
+        <div class="flex flex-col gap-12">
+          <div class="feature-row" style="padding: 10px 0;">
+            <div style="font-size: 16px;">📍</div>
+            <div><div class="font-bold text-sm text-white">Optimal zone placement</div><div class="text-xs text-muted">Which zones maximize CO₂ per dollar invested</div></div>
+          </div>
+          <div class="feature-row" style="padding: 10px 0;">
+            <div style="font-size: 16px;">🗺️</div>
+            <div><div class="font-bold text-sm text-white">Ranked zone results</div><div class="text-xs text-muted">Impact multiplier vs. unoptimized baseline</div></div>
+          </div>
+          <div class="feature-row" style="padding: 10px 0;">
+            <div style="font-size: 16px;">💰</div>
+            <div><div class="font-bold text-sm text-white">Portfolio allocation</div><div class="text-xs text-muted">Budget split across intervention types</div></div>
+          </div>
+          <div class="feature-row" style="padding: 10px 0; border: none;">
+            <div style="font-size: 16px;">🔄</div>
+            <div><div class="font-bold text-sm text-white">Diversification</div><div class="text-xs text-muted">Why this allocation mix outperforms concentration</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-32" style="background: linear-gradient(90deg, rgba(34,211,238,0.06), rgba(167,139,250,0.06)); border-color: rgba(34,211,238,0.15);">
+      <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">6-Stage Simulation Pipeline</div>
+      <div class="flex gap-0 items-center" style="flex-wrap: nowrap; overflow-x: auto;">
+        <div class="flex flex-col items-center gap-8" style="min-width: 120px; padding: 0 12px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(34,211,238,0.15); border: 1px solid var(--cyan); display: flex; align-items: center; justify-content: center; font-size: 14px;">1</div>
+          <div class="text-xs text-muted text-center">Fetch Baseline<br><span style="color: var(--cyan); font-size: 10px;">Cala API</span></div>
+        </div>
+        <div style="flex: 1; height: 1px; background: rgba(34,211,238,0.2); min-width: 20px;"></div>
+        <div class="flex flex-col items-center gap-8" style="min-width: 120px; padding: 0 12px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(59,130,246,0.15); border: 1px solid var(--blue); display: flex; align-items: center; justify-content: center; font-size: 14px;">2</div>
+          <div class="text-xs text-muted text-center">NIM Analysis<br><span style="color: var(--blue); font-size: 10px;">Llama 3.3-70B</span></div>
+        </div>
+        <div style="flex: 1; height: 1px; background: rgba(59,130,246,0.2); min-width: 20px;"></div>
+        <div class="flex flex-col items-center gap-8" style="min-width: 120px; padding: 0 12px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(167,139,250,0.15); border: 1px solid var(--purple); display: flex; align-items: center; justify-content: center; font-size: 14px;">3</div>
+          <div class="text-xs text-muted text-center">Cosmos Sim<br><span style="color: var(--purple); font-size: 10px;">World FM</span></div>
+        </div>
+        <div style="flex: 1; height: 1px; background: rgba(167,139,250,0.2); min-width: 20px;"></div>
+        <div class="flex flex-col items-center gap-8" style="min-width: 120px; padding: 0 12px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(251,191,36,0.15); border: 1px solid var(--amber); display: flex; align-items: center; justify-content: center; font-size: 14px;">4</div>
+          <div class="text-xs text-muted text-center">Spatial Opt<br><span style="color: var(--amber); font-size: 10px;">cuOpt</span></div>
+        </div>
+        <div style="flex: 1; height: 1px; background: rgba(251,191,36,0.2); min-width: 20px;"></div>
+        <div class="flex flex-col items-center gap-8" style="min-width: 120px; padding: 0 12px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(74,222,128,0.15); border: 1px solid var(--green); display: flex; align-items: center; justify-content: center; font-size: 14px;">5</div>
+          <div class="text-xs text-muted text-center">Impact Scoring<br><span style="color: var(--green); font-size: 10px;">6-Dimension</span></div>
+        </div>
+        <div style="flex: 1; height: 1px; background: rgba(74,222,128,0.2); min-width: 20px;"></div>
+        <div class="flex flex-col items-center gap-8" style="min-width: 120px; padding: 0 12px;">
+          <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(34,211,238,0.15); border: 1px solid var(--cyan); display: flex; align-items: center; justify-content: center; font-size: 14px;">6</div>
+          <div class="text-xs text-muted text-center">Claim Verify<br><span style="color: var(--cyan); font-size: 10px;">Accuracy Ratio</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">07 / 10</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 8 — PORTFOLIO OPTIMIZER
+════════════════════════════════════════════════════ -->
+<section class="slide" style="background: radial-gradient(ellipse 70% 60% at 20% 60%, rgba(74,222,128,0.05) 0%, transparent 60%);">
+  <div class="orb orb-green" style="width:400px;height:400px;bottom:-50px;left:-100px;"></div>
+  <div class="z1">
+    <div class="label">Portfolio Optimizer</div>
+    <h2>Maximize CO₂ per dollar<br>with <span class="text-green">NVIDIA cuOpt.</span></h2>
+    <div class="divider"></div>
+
+    <div class="grid-2 mt-40" style="gap: 40px; align-items: start;">
+
+      <div class="flex flex-col gap-20">
+        <div class="card">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">Configuration</div>
+          <div class="flex flex-col gap-16">
+            <div>
+              <div class="text-xs text-muted mb-8">Total Budget</div>
+              <div class="flex gap-8 flex-wrap">
+                <span class="badge badge-blue">$10M</span>
+                <span class="badge badge-blue">$50M</span>
+                <span class="badge badge-cyan" style="border-width: 2px;">$100M ✓</span>
+                <span class="badge badge-blue">$500M</span>
+                <span class="badge badge-blue">$1B</span>
+              </div>
+            </div>
+            <div>
+              <div class="text-xs text-muted mb-8">Max Allocations — <span class="text-white">5</span></div>
+              <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
+                <div style="width: 42%; height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan)); border-radius: 999px;"></div>
+              </div>
+            </div>
+            <div>
+              <div class="text-xs text-muted mb-8">Exclude Types</div>
+              <div class="flex gap-8 flex-wrap">
+                <span class="badge badge-red">✕ Carbon Credits</span>
+                <span class="badge badge-blue">Wind Farms</span>
+                <span class="badge badge-blue">Solar</span>
+                <span class="badge badge-blue">Reforestation</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-glow-green">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">Results Summary</div>
+          <div class="grid-3" style="gap: 16px; text-align: center;">
+            <div>
+              <div style="font-size: 22px; font-weight: 900; color: var(--cyan);">4.1M</div>
+              <div class="text-xs text-muted">Total CO₂/yr (tCO₂)</div>
+            </div>
+            <div>
+              <div style="font-size: 22px; font-weight: 900; color: var(--green);">$24</div>
+              <div class="text-xs text-muted">Avg cost per ton</div>
+            </div>
+            <div>
+              <div style="font-size: 22px; font-weight: 900; color: var(--amber);">$97M</div>
+              <div class="text-xs text-muted">Budget used</div>
+            </div>
+          </div>
+          <div class="mt-16">
+            <div class="text-xs text-muted mb-8">Budget Breakdown</div>
+            <div class="alloc-bar">
+              <div class="alloc-seg" style="width: 35%; background: linear-gradient(135deg, #22c55e, #4ade80);">Reforest 35%</div>
+              <div class="alloc-seg" style="width: 28%; background: linear-gradient(135deg, #3b82f6, #60a5fa);">Solar 28%</div>
+              <div class="alloc-seg" style="width: 20%; background: linear-gradient(135deg, #8b5cf6, #a78bfa);">Peatland 20%</div>
+              <div class="alloc-seg" style="width: 17%; background: linear-gradient(135deg, #06b6d4, #22d3ee);">Mangrove 17%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="overflow: hidden;">
+        <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">cuOpt Allocation Results</div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Type</th>
+              <th>Allocation</th>
+              <th>CO₂ (10yr)</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-muted">1</td>
+              <td><span class="badge badge-green">🌳 Reforestation</span></td>
+              <td class="font-bold text-white">$35M</td>
+              <td class="text-green font-bold">12.4M t</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 48px; height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
+                    <div style="width: 78%; height: 100%; background: var(--green);"></div>
+                  </div>
+                  <span class="text-green font-bold text-xs">78</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="text-muted">2</td>
+              <td><span class="badge badge-blue">☀️ Solar Farm</span></td>
+              <td class="font-bold text-white">$28M</td>
+              <td class="text-green font-bold">8.1M t</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 48px; height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
+                    <div style="width: 85%; height: 100%; background: var(--cyan);"></div>
+                  </div>
+                  <span class="text-cyan font-bold text-xs">85</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="text-muted">3</td>
+              <td><span class="badge badge-purple">🌿 Peatland</span></td>
+              <td class="font-bold text-white">$20M</td>
+              <td class="text-green font-bold">5.3M t</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 48px; height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
+                    <div style="width: 81%; height: 100%; background: var(--purple);"></div>
+                  </div>
+                  <span class="text-purple font-bold text-xs">81</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="text-muted">4</td>
+              <td><span class="badge badge-cyan">🌊 Mangrove</span></td>
+              <td class="font-bold text-white">$14M</td>
+              <td class="text-green font-bold">3.6M t</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="width: 48px; height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden;">
+                    <div style="width: 74%; height: 100%; background: var(--amber);"></div>
+                  </div>
+                  <span class="text-amber font-bold text-xs">74</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="card mt-16" style="background: rgba(34,211,238,0.05); border-color: rgba(34,211,238,0.15); padding: 16px;">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;">NIM Reasoning</div>
+          <p class="text-xs text-muted" style="line-height: 1.6; font-style: italic;">"Reforestation in tropical zones delivers the highest CO₂ per hectare. Solar complements with zero permanence risk. Peatland provides century-scale carbon lock-in. Mangroves add coastal resilience co-benefits. Diversifying across these four types reduces correlation risk while maximizing verified impact."</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">08 / 10</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 9 — TECH STACK
+════════════════════════════════════════════════════ -->
+<section class="slide" id="tech" style="background: radial-gradient(ellipse 60% 60% at 80% 20%, rgba(167,139,250,0.05) 0%, transparent 60%);">
+  <div class="z1">
+    <div class="label">Architecture</div>
+    <h2>Built on a modern,<br><span class="text-purple">production-grade</span> stack.</h2>
+    <div class="divider"></div>
+
+    <div class="grid-3 mt-40" style="gap: 24px; align-items: start;">
+
+      <div class="flex flex-col gap-16">
+        <div class="card">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">Frontend</div>
+          <div class="flex flex-col gap-10">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">Next.js 15</div><div class="badge badge-cyan" style="font-size: 10px;">App Router</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">React 19</div><div class="badge badge-blue" style="font-size: 10px;">Latest</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">TypeScript</div><div class="badge badge-blue" style="font-size: 10px;">Strict mode</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">Tailwind CSS 3.4</div><div class="badge badge-cyan" style="font-size: 10px;">Dark mode</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">shadcn/ui</div><div class="badge badge-blue" style="font-size: 10px;">11 primitives</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">Framer Motion 11</div><div class="badge badge-purple" style="font-size: 10px;">Animation</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">Zustand 5</div><div class="badge badge-blue" style="font-size: 10px;">State</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">Visualization</div>
+          <div class="flex flex-col gap-10">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">react-globe.gl</div><div class="badge badge-cyan" style="font-size: 10px;">3D Globe</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">Recharts 2.13</div><div class="badge badge-blue" style="font-size: 10px;">Charts</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">react-simple-maps</div><div class="badge badge-blue" style="font-size: 10px;">SVG maps</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-16">
+        <div class="card">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">AI / Backend</div>
+          <div class="flex flex-col gap-10">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">NVIDIA NIM</div><div class="badge badge-green" style="font-size: 10px;">Llama 3.3-70B</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">Cosmos WFM</div><div class="badge badge-cyan" style="font-size: 10px;">Physics sim</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">NVIDIA cuOpt</div><div class="badge badge-purple" style="font-size: 10px;">Optimization</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">Cala Knowledge API</div><div class="badge badge-amber" style="font-size: 10px;">Registry data</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">Context.dev</div><div class="badge badge-blue" style="font-size: 10px;">Web scraping</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">API Routes</div>
+          <div class="flex flex-col gap-10">
+            <div class="mono text-xs" style="color: var(--cyan);">POST /api/simulate</div>
+            <div class="mono text-xs" style="color: var(--muted);">GET  /api/simulate/[id]</div>
+            <div class="mono text-xs" style="color: var(--cyan);">POST /api/scan</div>
+            <div class="mono text-xs" style="color: var(--muted);">POST /api/optimize/portfolio</div>
+            <div class="mono text-xs" style="color: var(--cyan);">GET  /api/projects</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-16">
+        <div class="card">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">Data Quality</div>
+          <div class="flex flex-col gap-10">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">Zod</div><div class="badge badge-green" style="font-size: 10px;">Validation</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">Jest + RTL</div><div class="badge badge-blue" style="font-size: 10px;">Testing</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-white">ESLint</div><div class="badge badge-blue" style="font-size: 10px;">Linting</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">9 Intervention Types</div>
+          <div class="flex flex-wrap gap-8">
+            <span class="badge badge-green" style="font-size: 10px;">🌳 Reforestation</span>
+            <span class="badge badge-blue" style="font-size: 10px;">☀️ Solar Farm</span>
+            <span class="badge badge-blue" style="font-size: 10px;">💨 Wind Farm</span>
+            <span class="badge badge-amber" style="font-size: 10px;">📋 Carbon Credit</span>
+            <span class="badge badge-cyan" style="font-size: 10px;">🌊 Mangrove</span>
+            <span class="badge badge-cyan" style="font-size: 10px;">💧 Ocean Carbon</span>
+            <span class="badge badge-purple" style="font-size: 10px;">🌿 Peatland</span>
+            <span class="badge badge-green" style="font-size: 10px;">🌱 Regen. Ag.</span>
+            <span class="badge badge-blue" style="font-size: 10px;">🏭 Direct Air</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="text-xs text-muted font-bold" style="letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;">5 Pages / Routes</div>
+          <div class="flex flex-col gap-10">
+            <div class="mono text-xs" style="color: var(--white);">/</div>
+            <div class="text-xs text-muted" style="margin-left: 12px; margin-top: -6px;">Landing + Scanner + Form</div>
+            <div class="mono text-xs" style="color: var(--white);">/globe</div>
+            <div class="text-xs text-muted" style="margin-left: 12px; margin-top: -6px;">Interactive 3D globe</div>
+            <div class="mono text-xs" style="color: var(--white);">/simulate/[id]</div>
+            <div class="text-xs text-muted" style="margin-left: 12px; margin-top: -6px;">Full simulation dashboard</div>
+            <div class="mono text-xs" style="color: var(--white);">/optimize</div>
+            <div class="text-xs text-muted" style="margin-left: 12px; margin-top: -6px;">Portfolio optimizer</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">09 / 10</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     SLIDE 10 — CLOSING
+════════════════════════════════════════════════════ -->
+<section class="slide" style="background: radial-gradient(ellipse 100% 80% at 50% 50%, rgba(34,211,238,0.07) 0%, rgba(59,130,246,0.04) 40%, transparent 70%); min-height: 100vh;">
+  <div class="orb orb-cyan"  style="width:500px;height:500px;top:-150px;left:-100px;"></div>
+  <div class="orb orb-green" style="width:400px;height:400px;bottom:-100px;right:-100px;"></div>
+
+  <div class="z1" style="text-align: center; max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 32px;">
+
+    <div class="label">The Bottom Line</div>
+
+    <h1 style="letter-spacing: -3px; line-height: 1.0; font-size: clamp(44px, 5.5vw, 80px);">
+      The climate crisis is real.<br>
+      <span class="accent">Carbon fraud</span> makes it worse.<br>
+      <span class="accent-green">Planetary</span> fixes the data.
+    </h1>
+
+    <div class="divider"></div>
+
+    <div class="grid-3" style="gap: 24px; width: 100%; max-width: 800px;">
+      <div class="card text-center card-glow-green">
+        <div style="font-size: 40px; margin-bottom: 8px;">🛡️</div>
+        <h4 class="text-white mb-8">Physics over<br>marketing</h4>
+        <p class="text-xs text-muted">NVIDIA AI simulates what a project actually does — no self-reporting, no trust required.</p>
+      </div>
+      <div class="card text-center card-glow-blue">
+        <div style="font-size: 40px; margin-bottom: 8px;">📊</div>
+        <h4 class="text-white mb-8">Transparent<br>scoring</h4>
+        <p class="text-xs text-muted">Every point in the 0–100 score is traceable. No black boxes. No marketing magic.</p>
+      </div>
+      <div class="card text-center card-glow-blue">
+        <div style="font-size: 40px; margin-bottom: 8px;">💡</div>
+        <h4 class="text-white mb-8">Actionable<br>intelligence</h4>
+        <p class="text-xs text-muted">Know before you invest. Optimize your portfolio. Build a climate strategy that works.</p>
+      </div>
+    </div>
+
+    <div class="card mt-8" style="background: linear-gradient(135deg, rgba(34,211,238,0.08), rgba(59,130,246,0.05)); border-color: rgba(34,211,238,0.2); padding: 32px 48px; width: 100%; max-width: 700px;">
+      <div style="font-size: 20px; font-weight: 800; color: var(--white); margin-bottom: 8px;">Powered by</div>
+      <div class="flex flex-wrap gap-16 items-center justify-center mt-16">
+        <div class="tech-pill" style="font-size: 14px; padding: 10px 20px; border-color: rgba(74,222,128,0.3); color: var(--green);">
+          <div class="dot" style="background: var(--green); width: 8px; height: 8px;"></div> NVIDIA NIM
+        </div>
+        <div class="tech-pill" style="font-size: 14px; padding: 10px 20px; border-color: rgba(34,211,238,0.3); color: var(--cyan);">
+          <div class="dot" style="background: var(--cyan); width: 8px; height: 8px;"></div> Cosmos WFM
+        </div>
+        <div class="tech-pill" style="font-size: 14px; padding: 10px 20px; border-color: rgba(167,139,250,0.3); color: var(--purple);">
+          <div class="dot" style="background: var(--purple); width: 8px; height: 8px;"></div> cuOpt
+        </div>
+        <div class="tech-pill" style="font-size: 14px; padding: 10px 20px; border-color: rgba(251,191,36,0.3); color: var(--amber);">
+          <div class="dot" style="background: var(--amber); width: 8px; height: 8px;"></div> Cala API
+        </div>
+        <div class="tech-pill" style="font-size: 14px; padding: 10px 20px; border-color: rgba(59,130,246,0.3); color: #93c5fd;">
+          <div class="dot" style="background: #93c5fd; width: 8px; height: 8px;"></div> Context.dev
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-32 mt-8" style="flex-wrap: wrap; justify-content: center;">
+      <div class="stat-block" style="text-align: center;">
+        <div class="stat-num text-cyan">8</div>
+        <div class="stat-desc">Real projects verified</div>
+      </div>
+      <div class="stat-block" style="text-align: center;">
+        <div class="stat-num text-green">3</div>
+        <div class="stat-desc">NVIDIA models integrated</div>
+      </div>
+      <div class="stat-block" style="text-align: center;">
+        <div class="stat-num text-amber">0–100</div>
+        <div class="stat-desc">Transparent impact score</div>
+      </div>
+      <div class="stat-block" style="text-align: center;">
+        <div class="stat-num text-red">4.5×</div>
+        <div class="stat-desc">Greenwashing caught</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 16px; font-size: 32px; font-weight: 900; letter-spacing: -1px; color: var(--white);">
+      🌍 <span style="color: var(--cyan);">Planetary</span>
+    </div>
+    <div style="font-size: 13px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase;">Climate Verification Engine</div>
+  </div>
+  <div class="slide-num">10 / 10</div>
+</section>
+
+<script>
+  // Generate starfield
+  const container = document.getElementById('stars');
+  for (let i = 0; i < 180; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    const size = Math.random() * 2 + 0.5;
+    star.style.cssText = `
+      left: ${Math.random() * 100}%;
+      top: ${Math.random() * 100}%;
+      width: ${size}px;
+      height: ${size}px;
+      animation-duration: ${2 + Math.random() * 4}s;
+      animation-delay: ${Math.random() * 4}s;
+      opacity: ${0.1 + Math.random() * 0.3};
+    `;
+    container.appendChild(star);
+  }
+</script>
+</body>
+</html>

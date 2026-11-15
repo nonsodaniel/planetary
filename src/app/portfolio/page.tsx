@@ -1,24 +1,40 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { usePlanetaryStore } from "@/lib/planetary/store";
 import { interventionLabel, scoreTierMeta, fmtNum, fmtUSD } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { DEMO_INTERVENTIONS, DEMO_SIMULATIONS } from "@/lib/planetary/demos";
+
+type SortKey = "score" | "date" | "type";
 
 export default function PortfolioPage() {
   const { interventions, simulations } = usePlanetaryStore();
+  const [sortBy, setSortBy] = useState<SortKey>("score");
 
   // Build portfolio view
-  const projects = Object.values(interventions).map((intervention) => {
-    const sim = Object.values(simulations).find(
-      (s) => s.intervention_id === intervention.id
-    );
-    return { intervention, sim };
-  });
+  const rawProjects = useMemo(() =>
+    Object.values(interventions)
+      .filter(Boolean)
+      .map((intervention) => {
+        const sim = Object.values(simulations).find(
+          (s) => s?.intervention_id === intervention.id
+        );
+        return { intervention, sim };
+      }),
+    [interventions, simulations]
+  );
+
+  const projects = useMemo(() => {
+    return [...rawProjects].sort((a, b) => {
+      if (sortBy === "score") return (b.sim?.planetary_impact_score ?? -1) - (a.sim?.planetary_impact_score ?? -1);
+      if (sortBy === "type") return a.intervention.type.localeCompare(b.intervention.type);
+      return new Date(b.intervention.created_at).getTime() - new Date(a.intervention.created_at).getTime();
+    });
+  }, [rawProjects, sortBy]);
 
   const totalCO2 = projects.reduce((s, p) => s + (p.sim?.total_co2_10yr_tons ?? 0), 0);
   const avgScore =
@@ -39,16 +55,35 @@ export default function PortfolioPage() {
             Planetary Impact Scores across all simulated interventions
           </p>
         </div>
-        <Link href="/">
-          <Button variant="primary" size="sm" className="gap-2">
-            <Plus className="w-3.5 h-3.5" />
-            Add Intervention
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          {/* Sort controls */}
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-500">
+            <ArrowUpDown className="w-3 h-3" />
+            {(["score", "date", "type"] as SortKey[]).map((opt) => (
+              <button
+                key={opt}
+                onClick={() => setSortBy(opt)}
+                className={`px-2 py-1 rounded transition-colors capitalize ${
+                  sortBy === opt
+                    ? "bg-zinc-700 text-zinc-200"
+                    : "hover:text-zinc-300"
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+          <Link href="/#simulate">
+            <Button variant="primary" size="sm" className="gap-2">
+              <Plus className="w-3.5 h-3.5" />
+              Add Intervention
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Portfolio summary */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
           <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Total CO₂ Impact</div>
           <div className="font-mono text-2xl font-bold text-emerald-400">
@@ -166,7 +201,7 @@ export default function PortfolioPage() {
           <div className="text-4xl mb-4">🌍</div>
           <p className="text-lg mb-2">No projects yet</p>
           <p className="text-sm">Run your first simulation to see your portfolio.</p>
-          <Link href="/" className="inline-block mt-4">
+          <Link href="/#simulate" className="inline-block mt-4">
             <Button variant="primary">Start Simulating</Button>
           </Link>
         </div>

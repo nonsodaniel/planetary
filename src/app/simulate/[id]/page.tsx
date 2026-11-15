@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ExternalLink, Download } from "lucide-react";
+import { ArrowLeft, ExternalLink, Download, Copy } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ import { NvidiaInsights } from "@/components/planetary/NvidiaInsights";
 import { CosmosWorldView } from "@/components/planetary/CosmosWorldView";
 import { usePlanetaryStore } from "@/lib/planetary/store";
 import { DEMO_INTERVENTIONS, DEMO_SIMULATIONS } from "@/lib/planetary/demos";
+import { DEMO_PROJECTS } from "@/lib/planetary/demoProjects";
 import {
   interventionLabel,
   scoreTierMeta,
@@ -29,6 +30,7 @@ import {
 import type { SimulationResult, ClimateIntervention } from "@/lib/planetary/types";
 
 const POLL_INTERVAL = 2000; // 2s
+const MAX_POLLS     = 150;  // 5-minute ceiling at 2s interval
 
 function SkeletonPanel() {
   return (
@@ -47,10 +49,18 @@ export default function SimulatePage() {
   const simId = params.id as string;
   const interventionId = searchParams.get("intervention");
   const isDemo = searchParams.get("demo") === "1";
+  const projectId = searchParams.get("project");
 
-  const { simulations, interventions } = usePlanetaryStore();
+  // When a project ID is supplied (from the globe / landing page CTAs), use that
+  // project's display data for the header so example-only projects (which reuse
+  // another project's simId/interventionId) show their own name and location.
+  const demoProject = projectId ? DEMO_PROJECTS.find((p) => p.id === projectId) ?? null : null;
+
+  const { simulations, interventions, upsertSimulation } = usePlanetaryStore();
   const [sim, setSim] = useState<SimulationResult | null>(null);
   const [polling, setPolling] = useState(false);
+  const abortRef     = useRef<AbortController | null>(null);
+  const pollCountRef = useRef(0);
 
   // Get intervention from store or demos
   const intervention: ClimateIntervention | null =
@@ -71,23 +81,35 @@ export default function SimulatePage() {
 
   // Poll for updates if simulation is running
   const fetchSim = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
-      const res = await fetch(`/api/simulate/${simId}`);
+      const res = await fetch(`/api/simulate/${simId}`, { signal: controller.signal });
       if (!res.ok) return;
       const data: SimulationResult = await res.json();
       setSim(data);
+      if (data.status === "complete") upsertSimulation(data);
       return data.status;
-    } catch {
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
       return "error";
     }
-  }, [simId]);
+  }, [simId, upsertSimulation]);
 
   useEffect(() => {
-    if (isDemo) return; // demos are pre-computed
+    if (isDemo) return;
     if (sim?.status === "complete" || sim?.status === "error") return;
 
+    pollCountRef.current = 0;
     setPolling(true);
     const interval = setInterval(async () => {
+      pollCountRef.current += 1;
+      if (pollCountRef.current >= MAX_POLLS) {
+        clearInterval(interval);
+        setPolling(false);
+        return;
+      }
       const status = await fetchSim();
       if (status === "complete" || status === "error") {
         clearInterval(interval);
@@ -95,24 +117,39 @@ export default function SimulatePage() {
       }
     }, POLL_INTERVAL);
 
-    // Initial fetch
     fetchSim();
 
     return () => {
       clearInterval(interval);
       setPolling(false);
+      abortRef.current?.abort();
     };
   }, [simId, isDemo, fetchSim]);
 
   const isRunning = sim?.status === "running" || sim?.status === "pending";
   const isComplete = sim?.status === "complete";
+
+  const handleDownload = useCallback(() => {
+    if (!sim) return;
+    const blob = new Blob([JSON.stringify(sim, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `simulation-${simId}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [sim, simId]);
+
+  const handleCopyLink = useCallback(() => {
+    navigator.clipboard.writeText(window.location.href).catch(() => {});
+  }, []);
   const tierMeta = sim ? scoreTierMeta(sim.score_tier) : null;
   const gwRisk = sim?.claim_verification?.greenwashing_risk;
 
   return (
     <div className="min-h-[calc(100vh-56px)] px-4 py-6 max-w-7xl mx-auto">
       {/* Top bar */}
-      <div className="flex items-start justify-between mb-6 gap-4">
+      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div className="flex items-start gap-4">
           <Link href="/" className="mt-1 p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-200 transition-colors">
             <ArrowLeft className="w-4 h-4" />
@@ -120,7 +157,7 @@ export default function SimulatePage() {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-lg font-semibold text-zinc-100">
-                {intervention?.name ?? "Climate Simulation"}
+                {demoProject?.name ?? intervention?.name ?? "Climate Simulation"}
               </h1>
               {intervention && (
                 <Badge variant="secondary" className="text-xs">
@@ -138,29 +175,30 @@ export default function SimulatePage() {
                 </div>
               )}
             </div>
-            {intervention && (
+            {(demoProject || intervention) && (
               <div className="text-sm text-zinc-500 mt-0.5">
-                {intervention.region}, {intervention.country}
-                {intervention.area_hectares && ` · ${fmtNum(intervention.area_hectares, 0)} ha`}
-                {intervention.capacity_mw && ` · ${intervention.capacity_mw} MW`}
-                {` · ${fmtUSD(intervention.investment_usd_m)} investment`}
+                {demoProject
+                  ? `${demoProject.country} · ${demoProject.type} · ${demoProject.investment}`
+                  : intervention && (
+                    <>
+                      {intervention.region}, {intervention.country}
+                      {intervention.area_hectares && ` · ${fmtNum(intervention.area_hectares, 0)} ha`}
+                      {intervention.capacity_mw && ` · ${intervention.capacity_mw} MW`}
+                      {` · ${fmtUSD(intervention.investment_usd_m)} investment`}
+                    </>
+                  )
+                }
               </div>
             )}
           </div>
         </div>
 
-        {/* Status indicator */}
-        <div className="flex items-center gap-2 text-xs flex-shrink-0">
+        {/* Status + actions */}
+        <div className="flex items-center gap-2 text-xs flex-shrink-0 flex-wrap">
           {isRunning && (
             <div className="flex items-center gap-1.5 text-blue-400 font-mono">
               <div className="w-2 h-2 rounded-full bg-blue-400" />
               Simulating...
-            </div>
-          )}
-          {isComplete && (
-            <div className="flex items-center gap-1.5 text-emerald-400 font-mono">
-              <div className="w-2 h-2 rounded-full bg-emerald-400" />
-              Complete
             </div>
           )}
           {sim?.status === "error" && (
@@ -168,6 +206,26 @@ export default function SimulatePage() {
               <div className="w-2 h-2 rounded-full bg-red-400" />
               Error
             </div>
+          )}
+          {isComplete && (
+            <>
+              <button
+                onClick={handleCopyLink}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                title="Copy link"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copy link</span>
+              </button>
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                title="Download simulation JSON"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export</span>
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -319,19 +377,8 @@ export default function SimulatePage() {
       </div>
 
       {/* Footer attribution */}
-      <div className="mt-8 pt-6 border-t border-zinc-800/40 flex flex-wrap gap-4 justify-between items-center text-xs text-zinc-600">
-        <div className="font-mono space-x-3">
-          <span>NVIDIA NIM</span>
-          <span className="text-zinc-700">·</span>
-          <span>Cosmos World Foundation Model</span>
-          <span className="text-zinc-700">·</span>
-          <span>cuOpt</span>
-          <span className="text-zinc-700">·</span>
-          <span>Cala Knowledge API</span>
-        </div>
-        {sim?.completed_at && (
-          <div>Completed {new Date(sim.completed_at).toLocaleTimeString()}</div>
-        )}
+      <div className="mt-8 pt-6 border-t border-zinc-800/40 text-xs font-mono text-zinc-400">
+        Powered by NVIDIA (NIM · Cosmos World Foundation Model · cuOpt) · Context.dev · Cala Knowledge API
       </div>
     </div>
   );

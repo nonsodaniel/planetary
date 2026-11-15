@@ -10,7 +10,7 @@ import { interventionLabel } from "@/lib/utils";
 import { usePlanetaryStore } from "@/lib/planetary/store";
 import { DEMO_INTERVENTIONS, DEMO_SIMULATIONS } from "@/lib/planetary/demos";
 import { GreenwashingScanner } from "@/components/planetary/GreenwashingScanner";
-import type { InterventionType } from "@/lib/planetary/types";
+import type { InterventionType, ClimateIntervention } from "@/lib/planetary/types";
 
 const INTERVENTION_TYPES: { value: InterventionType; label: string; icon: string }[] = [
   { value: "reforestation",            label: "Reforestation",            icon: "🌳" },
@@ -90,6 +90,13 @@ export function InterventionForm() {
       }
 
       const { simulation_id, intervention_id } = await res.json();
+      // Persist intervention to localStorage so portfolio shows it
+      upsertIntervention({
+        ...payload,
+        description: description || "",
+        id: intervention_id,
+        created_at: new Date().toISOString(),
+      } as ClimateIntervention);
       setActiveSimulation(simulation_id);
       router.push(`/simulate/${simulation_id}?intervention=${intervention_id}`);
     } catch (err) {
@@ -143,7 +150,7 @@ export function InterventionForm() {
               <label className="text-xs text-zinc-500 uppercase tracking-wider mb-2 block">
                 Intervention Type
               </label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {INTERVENTION_TYPES.map((t) => (
                   <button
                     key={t.value}
@@ -156,7 +163,10 @@ export function InterventionForm() {
                     }`}
                   >
                     <span className="text-lg">{t.icon}</span>
-                    <span className="text-center leading-tight">{t.label}</span>
+                    <span className="hidden sm:block text-center leading-tight">{t.label}</span>
+                    <span className="sm:hidden text-center leading-tight text-[10px]">
+                      {t.label.split(" ")[0]}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -165,8 +175,9 @@ export function InterventionForm() {
             {/* Core details */}
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="text-xs text-zinc-500 mb-1.5 block">Project Name (optional)</label>
+                <label htmlFor="f-name" className="text-xs text-zinc-500 mb-1.5 block">Project Name (optional)</label>
                 <input
+                  id="f-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -176,8 +187,9 @@ export function InterventionForm() {
               </div>
 
               <div>
-                <label className="text-xs text-zinc-500 mb-1.5 block">Region / Area *</label>
+                <label htmlFor="f-region" className="text-xs text-zinc-500 mb-1.5 block">Region / Area *</label>
                 <input
+                  id="f-region"
                   required
                   type="text"
                   value={region}
@@ -188,8 +200,9 @@ export function InterventionForm() {
               </div>
 
               <div>
-                <label className="text-xs text-zinc-500 mb-1.5 block">Country *</label>
+                <label htmlFor="f-country" className="text-xs text-zinc-500 mb-1.5 block">Country *</label>
                 <input
+                  id="f-country"
                   required
                   type="text"
                   value={country}
@@ -200,10 +213,13 @@ export function InterventionForm() {
               </div>
 
               <div>
-                <label className="text-xs text-zinc-500 mb-1.5 block">Latitude</label>
+                <label htmlFor="f-lat" className="text-xs text-zinc-500 mb-1.5 block">Latitude</label>
                 <input
+                  id="f-lat"
                   type="number"
                   step="0.001"
+                  min="-90"
+                  max="90"
                   value={lat}
                   onChange={(e) => setLat(e.target.value)}
                   placeholder="e.g. -3.47"
@@ -212,10 +228,13 @@ export function InterventionForm() {
               </div>
 
               <div>
-                <label className="text-xs text-zinc-500 mb-1.5 block">Longitude</label>
+                <label htmlFor="f-lng" className="text-xs text-zinc-500 mb-1.5 block">Longitude</label>
                 <input
+                  id="f-lng"
                   type="number"
                   step="0.001"
+                  min="-180"
+                  max="180"
                   value={lng}
                   onChange={(e) => setLng(e.target.value)}
                   placeholder="e.g. -60.02"
@@ -225,9 +244,12 @@ export function InterventionForm() {
 
               {isLand && (
                 <div>
-                  <label className="text-xs text-zinc-500 mb-1.5 block">Area (hectares)</label>
+                  <label htmlFor="f-area" className="text-xs text-zinc-500 mb-1.5 block">Area (hectares)</label>
                   <input
+                    id="f-area"
                     type="number"
+                    min="0.01"
+                    step="1"
                     value={area}
                     onChange={(e) => setArea(e.target.value)}
                     placeholder="e.g. 100000"
@@ -238,9 +260,12 @@ export function InterventionForm() {
 
               {isSolar && (
                 <div>
-                  <label className="text-xs text-zinc-500 mb-1.5 block">Capacity (MW)</label>
+                  <label htmlFor="f-mw" className="text-xs text-zinc-500 mb-1.5 block">Capacity (MW)</label>
                   <input
+                    id="f-mw"
                     type="number"
+                    min="0.01"
+                    step="0.1"
                     value={capacityMW}
                     onChange={(e) => setCapacityMW(e.target.value)}
                     placeholder="e.g. 500"
@@ -250,10 +275,13 @@ export function InterventionForm() {
               )}
 
               <div>
-                <label className="text-xs text-zinc-500 mb-1.5 block">Investment ($M USD) *</label>
+                <label htmlFor="f-invest" className="text-xs text-zinc-500 mb-1.5 block">Investment ($M USD) *</label>
                 <input
+                  id="f-invest"
                   required
                   type="number"
+                  min="0.01"
+                  step="0.1"
                   value={investment}
                   onChange={(e) => setInvestment(e.target.value)}
                   placeholder="e.g. 50"
@@ -262,12 +290,15 @@ export function InterventionForm() {
               </div>
 
               <div>
-                <label className="text-xs text-zinc-500 mb-1.5 block">
+                <label htmlFor="f-co2" className="text-xs text-zinc-500 mb-1.5 block">
                   Claimed CO₂ (tons/year)
                   <span className="ml-1 text-zinc-500">for verification</span>
                 </label>
                 <input
+                  id="f-co2"
                   type="number"
+                  min="0.01"
+                  step="1000"
                   value={claimedCO2}
                   onChange={(e) => setClaimedCO2(e.target.value)}
                   placeholder="e.g. 500000"
@@ -276,22 +307,24 @@ export function InterventionForm() {
               </div>
 
               <div>
-                <label className="text-xs text-zinc-500 mb-1.5 block">Timeline (years)</label>
+                <label htmlFor="f-timeline" className="text-xs text-zinc-500 mb-1.5 block">Timeline (years)</label>
                 <input
+                  id="f-timeline"
                   type="number"
                   value={timeline}
                   onChange={(e) => setTimeline(e.target.value)}
-                  min="5"
+                  min="1"
                   max="50"
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/40"
                 />
               </div>
 
               <div className="col-span-2">
-                <label className="text-xs text-zinc-500 mb-1.5 block">
+                <label htmlFor="f-certs" className="text-xs text-zinc-500 mb-1.5 block">
                   Certifications (comma-separated)
                 </label>
                 <input
+                  id="f-certs"
                   type="text"
                   value={certs}
                   onChange={(e) => setCerts(e.target.value)}

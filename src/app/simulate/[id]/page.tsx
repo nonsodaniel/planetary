@@ -17,6 +17,8 @@ import { MetricsGrid } from "@/components/planetary/MetricsGrid";
 import { SimulationStages } from "@/components/planetary/SimulationStages";
 import { NvidiaInsights } from "@/components/planetary/NvidiaInsights";
 import { CosmosWorldView } from "@/components/planetary/CosmosWorldView";
+import { SatellitePanel } from "@/components/planetary/SatellitePanel";
+import { InvestorPanel } from "@/components/planetary/InvestorPanel";
 import { usePlanetaryStore } from "@/lib/planetary/store";
 import { DEMO_INTERVENTIONS, DEMO_SIMULATIONS } from "@/lib/planetary/demos";
 import { DEMO_PROJECTS } from "@/lib/planetary/demoProjects";
@@ -27,10 +29,12 @@ import {
   fmtNum,
   fmtUSD,
 } from "@/lib/utils";
-import type { SimulationResult, ClimateIntervention } from "@/lib/planetary/types";
+import type { SimulationResult, ClimateIntervention, SatelliteVerification, InvestorIntelligence } from "@/lib/planetary/types";
+import type { SimSummary } from "@/lib/nvidia/investor";
 
-const POLL_INTERVAL = 2000; // 2s
-const MAX_POLLS     = 150;  // 5-minute ceiling at 2s interval
+const POLL_INTERVAL        = 2000; // 2s
+const MAX_POLLS            = 150;  // 5-minute ceiling at 2s interval
+const POST_COMPLETE_POLLS  = 12;   // 24s grace period for async enrichments (Nemotron + satellite)
 
 function SkeletonPanel() {
   return (
@@ -59,8 +63,9 @@ export default function SimulatePage() {
   const { simulations, interventions, upsertSimulation } = usePlanetaryStore();
   const [sim, setSim] = useState<SimulationResult | null>(null);
   const [polling, setPolling] = useState(false);
-  const abortRef     = useRef<AbortController | null>(null);
-  const pollCountRef = useRef(0);
+  const abortRef              = useRef<AbortController | null>(null);
+  const pollCountRef          = useRef(0);
+  const postCompletePollsRef  = useRef(0);
 
   // Get intervention from store or demos
   const intervention: ClimateIntervention | null =
@@ -99,9 +104,10 @@ export default function SimulatePage() {
 
   useEffect(() => {
     if (isDemo) return;
-    if (sim?.status === "complete" || sim?.status === "error") return;
+    if (sim?.status === "error") return;
 
     pollCountRef.current = 0;
+    postCompletePollsRef.current = 0;
     setPolling(true);
     const interval = setInterval(async () => {
       pollCountRef.current += 1;
@@ -111,9 +117,17 @@ export default function SimulatePage() {
         return;
       }
       const status = await fetchSim();
-      if (status === "complete" || status === "error") {
+      if (status === "error") {
         clearInterval(interval);
         setPolling(false);
+      } else if (status === "complete") {
+        // Continue polling for POST_COMPLETE_POLLS more cycles so that
+        // async enrichments (Nemotron + satellite) can be fetched once ready.
+        postCompletePollsRef.current += 1;
+        if (postCompletePollsRef.current >= POST_COMPLETE_POLLS) {
+          clearInterval(interval);
+          setPolling(false);
+        }
       }
     }, POLL_INTERVAL);
 
@@ -128,6 +142,98 @@ export default function SimulatePage() {
 
   const isRunning = sim?.status === "running" || sim?.status === "pending";
   const isComplete = sim?.status === "complete";
+
+  // Dedicated satellite state — kept separate from `sim` so React can track
+  // it reliably. Seeded from sim if the server-side enrichment already ran.
+  const [satelliteData, setSatelliteData] = useState<SatelliteVerification | null>(null);
+  const [satelliteLoading, setSatelliteLoading] = useState(false);
+  const satelliteFetchedRef = useRef(false);
+
+  // Seed from server enrichment if it arrives via polling
+  useEffect(() => {
+    if (sim?.satellite_verification && !satelliteData) {
+      setSatelliteData(sim.satellite_verification);
+    }
+  }, [sim?.satellite_verification]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Client-side on-demand fetch — fires once the sim is complete and
+  // we have an intervention. Covers demos (no polling) and live sims
+  // where background enrichment hasn't finished yet.
+  // The ref is set AFTER a successful response (not before the fetch) so
+  // React StrictMode's double-invoke correctly retries the aborted fetch.
+  useEffect(() => {
+    if (!isComplete || !intervention || satelliteFetchedRef.current) return;
+
+    let alive = true;
+    setSatelliteLoading(true);
+    const controller = new AbortController();
+
+    fetch("/api/satellite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(intervention),
+      signal: controller.signal,
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then((data: { satellite: SatelliteVerification }) => {
+        if (!alive) return;
+        satelliteFetchedRef.current = true;
+        if (data?.satellite) setSatelliteData(data.satellite);
+      })
+      .catch((err: unknown) => {
+        if ((err as { name?: string })?.name !== "AbortError") {
+          console.warn("[Satellite] Client fetch failed:", err);
+        }
+      })
+      .finally(() => { if (alive) setSatelliteLoading(false); });
+
+    return () => { alive = false; controller.abort(); };
+  }, [isComplete, intervention]);
+
+  // Investor intelligence — same guard pattern as satellite
+  const [investorData, setInvestorData] = useState<InvestorIntelligence | null>(null);
+  const [investorLoading, setInvestorLoading] = useState(false);
+  const investorFetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isComplete || !intervention || !sim || investorFetchedRef.current) return;
+
+    let alive = true;
+    const simSummary: SimSummary = {
+      planetary_impact_score: sim.planetary_impact_score,
+      score_tier: sim.score_tier,
+      total_co2_10yr_tons: sim.total_co2_10yr_tons,
+      cost_per_ton_usd: sim.cost_per_ton_usd,
+      net_benefit_usd_m: sim.net_benefit_usd_m,
+      overall_risk: sim.overall_risk,
+      greenwashing_risk: sim.claim_verification?.greenwashing_risk,
+      accuracy_ratio: sim.claim_verification?.accuracy_ratio,
+    };
+
+    setInvestorLoading(true);
+    const controller = new AbortController();
+
+    fetch("/api/investor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ intervention, sim: simSummary }),
+      signal: controller.signal,
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then((data: { intelligence: InvestorIntelligence }) => {
+        if (!alive) return;
+        investorFetchedRef.current = true;
+        if (data?.intelligence) setInvestorData(data.intelligence);
+      })
+      .catch((err: unknown) => {
+        if ((err as { name?: string })?.name !== "AbortError") {
+          console.warn("[Investor] Client fetch failed:", err);
+        }
+      })
+      .finally(() => { if (alive) setInvestorLoading(false); });
+
+    return () => { alive = false; controller.abort(); };
+  }, [isComplete, intervention, sim]);
 
   const handleDownload = useCallback(() => {
     if (!sim) return;
@@ -300,6 +406,20 @@ export default function SimulatePage() {
             )}
           </div>
 
+          {/* Satellite Ground-Truth */}
+          {isComplete && (satelliteData || satelliteLoading) && (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+              <div className="text-xs text-zinc-500 uppercase tracking-wider mb-4">
+                Satellite Ground-Truth
+              </div>
+              {satelliteData ? (
+                <SatellitePanel satellite={satelliteData} />
+              ) : (
+                <SkeletonPanel />
+              )}
+            </div>
+          )}
+
           {/* Cosmos World View */}
           {isComplete && sim && (
             <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
@@ -368,11 +488,26 @@ export default function SimulatePage() {
                 nim={sim.nim_analysis}
                 cosmos={sim.cosmos_world}
                 optimization={sim.optimization}
+                nemotronConfidence={sim.nemotron_confidence}
               />
             ) : (
               <SkeletonPanel />
             )}
           </div>
+
+          {/* Investor Intelligence */}
+          {isComplete && (investorData || investorLoading) && (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+              <div className="text-xs text-zinc-500 uppercase tracking-wider mb-4">
+                Investor Intelligence
+              </div>
+              {investorData ? (
+                <InvestorPanel intelligence={investorData} />
+              ) : (
+                <SkeletonPanel />
+              )}
+            </div>
+          )}
         </div>
       </div>
 

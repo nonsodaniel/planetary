@@ -15,6 +15,8 @@
 import { runNimAnalysis } from "../nvidia/nim";
 import { runCosmosSimulation } from "../nvidia/cosmos";
 import { runCuOptOptimization } from "../nvidia/cuopt";
+import { runNemotronConfidence, runNemotronGreenwashingAnalysis } from "../nvidia/nemotron";
+import { runSatelliteVerification } from "../satellite";
 import { fetchProjectBaseline, fetchClaimEvidence } from "../cala/climate";
 import {
   computePlanetaryScore,
@@ -26,6 +28,8 @@ import type {
   SimulationResult,
   SimulationStage,
   StageStatus,
+  ClaimVerification,
+  NimClimateAnalysis,
 } from "./types";
 import { makeId } from "../utils";
 
@@ -288,6 +292,85 @@ async function runPipeline(
   }
 
   simulations.set(sim.id, finalSim);
+
+  // Kick off Nemotron enrichment first, then satellite sequentially so that
+  // satellite always reads the already-patched map entry — eliminates the
+  // last-write-wins race condition when both would spread from a stale snapshot.
+  enrichWithNemotron(finalSim, intervention, nimAnalysis, claimVerification)
+    .catch((err) => console.warn("[Nemotron] Background enrichment failed:", err))
+    .finally(() => {
+      enrichWithSatellite(finalSim, intervention).catch(
+        (err) => console.warn("[Satellite] Background enrichment failed:", err)
+      );
+    });
+}
+
+/**
+ * Asynchronously enriches a completed simulation with Nemotron outputs.
+ * Runs after the pipeline is marked complete so the base result is always
+ * available regardless of Nemotron API availability.
+ */
+async function enrichWithNemotron(
+  sim: SimulationResult,
+  intervention: ClimateIntervention,
+  nimAnalysis: NimClimateAnalysis,
+  claimVerification: ClaimVerification | undefined
+): Promise<void> {
+  // Run confidence scoring and greenwashing analysis in parallel
+  const shouldRunGreenwashing =
+    claimVerification !== undefined &&
+    (claimVerification.greenwashing_risk === "moderate" ||
+      claimVerification.greenwashing_risk === "high" ||
+      claimVerification.greenwashing_risk === "severe");
+
+  const [confidenceResult, greenwashingResult] = await Promise.allSettled([
+    runNemotronConfidence(intervention, nimAnalysis),
+    shouldRunGreenwashing
+      ? runNemotronGreenwashingAnalysis(intervention, claimVerification!)
+      : Promise.resolve(undefined),
+  ]);
+
+  // Re-read current state — another request might have updated it
+  const current = simulations.get(sim.id);
+  if (!current || current.status !== "complete") return;
+
+  const patch: Partial<SimulationResult> = {};
+
+  if (confidenceResult.status === "fulfilled") {
+    patch.nemotron_confidence = confidenceResult.value;
+  }
+
+  if (
+    greenwashingResult.status === "fulfilled" &&
+    greenwashingResult.value !== undefined &&
+    current.claim_verification
+  ) {
+    patch.claim_verification = {
+      ...current.claim_verification,
+      nemotron_analysis: greenwashingResult.value,
+    };
+  }
+
+  if (Object.keys(patch).length > 0) {
+    simulations.set(sim.id, { ...current, ...patch });
+  }
+}
+
+/**
+ * Asynchronously enriches a completed simulation with satellite ground-truth data.
+ * Runs after the pipeline is marked complete so it never delays the base result.
+ */
+async function enrichWithSatellite(
+  sim: SimulationResult,
+  intervention: ClimateIntervention
+): Promise<void> {
+  const satelliteVerification = await runSatelliteVerification(intervention);
+
+  // Re-read state — another enrichment may have patched it in the meantime
+  const current = simulations.get(sim.id);
+  if (!current || current.status !== "complete") return;
+
+  simulations.set(sim.id, { ...current, satellite_verification: satelliteVerification });
 }
 
 function getCategoryAvgScore(type: string): number {

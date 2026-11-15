@@ -152,6 +152,59 @@ export function ClaimVerifier({ verification }: ClaimVerifierProps) {
           </div>
         </div>
       )}
+
+      {/* Nemotron root-cause analysis — renders only when available */}
+      {verification.nemotron_analysis && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="rounded-lg border border-red-900/40 bg-red-950/20 p-3 space-y-3"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-xs">🔬</span>
+            <div className="text-xs font-semibold text-red-300">Nemotron Root-Cause Analysis</div>
+            <div className="ml-auto text-xs font-mono text-zinc-600">
+              {verification.nemotron_analysis.model_used.replace(" (fallback)", "")}
+            </div>
+          </div>
+
+          {/* Root cause */}
+          <div className="text-xs text-zinc-300 leading-relaxed border-l-2 border-red-500/40 pl-3">
+            {verification.nemotron_analysis.root_cause}
+          </div>
+
+          {/* Mechanisms */}
+          {verification.nemotron_analysis.mechanisms.length > 0 && (
+            <div>
+              <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5">Mechanisms</div>
+              <div className="space-y-1.5">
+                {verification.nemotron_analysis.mechanisms.map((m, i) => (
+                  <div key={i} className="flex gap-2 text-xs text-zinc-400">
+                    <span className="text-red-500/60 flex-shrink-0 mt-0.5">▸</span>
+                    <span>{m}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Red flags */}
+          {verification.nemotron_analysis.red_flags.length > 0 && (
+            <div>
+              <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5">Red Flags</div>
+              <div className="space-y-1.5">
+                {verification.nemotron_analysis.red_flags.map((f, i) => (
+                  <div key={i} className="flex gap-2 text-xs text-zinc-400">
+                    <span className="text-amber-500/60 flex-shrink-0 mt-0.5">⚑</span>
+                    <span>{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
     </div>
   );
 }

@@ -359,7 +359,7 @@ Create a `.env.local` file in the project root:
 NVIDIA_API_KEY=your_nvidia_api_key
 
 # Cala Knowledge API
-CALA_API_KEY=your_cala_api_key
+CALA_API_KEY=clsk_0TuWbY6TDqIFteDbCDHTg8Co6cWlxuVfoOxi3NJfW9A
 CALA_API_URL=https://api.cala.ai
 
 # Optional: override NIM model

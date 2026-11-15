@@ -139,6 +139,60 @@ export interface CosmosWorldState {
   simulation_fidelity: "low" | "medium" | "high";
 }
 
+// ─── Satellite Ground-Truth ──────────────────────────────────────────────────
+
+export interface SatelliteNdviPoint {
+  year: number;
+  ndvi: number;
+}
+
+export interface SatelliteTile {
+  label: string;
+  url: string;
+  date: string;
+}
+
+/** Real-imagery verification using NASA GIBS + NIM NDVI analysis */
+export interface SatelliteVerification {
+  ndvi_baseline: number;              // NDVI before project start (0–1)
+  ndvi_current: number;               // Current NDVI (0–1)
+  ndvi_change: number;                // current − baseline
+  vegetation_cover_pct: number;       // 0–100
+  historical_deforestation_rate: number; // %/yr in reference region
+  vegetation_confidence: "confirmed" | "partial" | "disputed";
+  ground_truth_score: number;         // 0–100
+  yearly_ndvi: SatelliteNdviPoint[];  // 2015–2024
+  tile_urls: SatelliteTile[];         // NASA GIBS WMS tiles (3 time points)
+  analysis: string;
+  key_finding: string;
+  model_used: string;
+  retrieved_at: string;
+}
+
+// ─── Nemotron Enhancements ───────────────────────────────────────────────────
+
+/** Simulation quality score produced by the Nemotron judge model (Feature 1) */
+export interface NemotronConfidence {
+  score: number; // 0–1
+  label: "High" | "Medium" | "Low";
+  reasoning: string;
+  dimensions?: {
+    scientific_accuracy: number; // 0–1
+    internal_consistency: number;
+    regional_specificity: number;
+    ipcc_alignment: number;
+  };
+  model_used: string;
+}
+
+/** Deep greenwashing root-cause analysis from Nemotron 340B (Feature 3) */
+export interface NemotronGreenwashingAnalysis {
+  root_cause: string;
+  mechanisms: string[]; // specific causal mechanisms, up to 3
+  red_flags: string[];  // concrete observable red flags, up to 3
+  model_used: string;
+}
+
 // ─── Claim Verification ──────────────────────────────────────────────────────
 
 export type GreenwashingRisk = "none" | "low" | "moderate" | "high" | "severe";
@@ -151,6 +205,8 @@ export interface ClaimVerification {
   discrepancy_pct: number; // how much claimed exceeds simulated, %
   evidence: string[];
   cala_sources: CalaSource[];
+  /** Deep root-cause analysis from Nemotron (populated asynchronously) */
+  nemotron_analysis?: NemotronGreenwashingAnalysis;
 }
 
 export interface CalaSource {
@@ -236,6 +292,34 @@ export interface SimulationResult {
   // Benchmarks
   comparable_projects: ComparableProject[];
   vs_category_avg_pct: number; // % above/below category average score
+
+  /** Simulation quality confidence from Nemotron reward judge (populated asynchronously) */
+  nemotron_confidence?: NemotronConfidence;
+
+  /** NASA GIBS satellite imagery + NIM NDVI verification (populated asynchronously) */
+  satellite_verification?: SatelliteVerification;
+}
+
+// ─── Investor Intelligence ───────────────────────────────────────────────────
+
+export interface InvestorScenario {
+  label: "Pessimistic" | "Base Case" | "Optimistic";
+  co2_price_usd: number;    // $/ton in target year (2030)
+  roi_pct: number;          // % return on investment over project lifetime
+  npv_usd_m: number;        // net present value at 8 % discount rate ($M)
+  payback_years: number;    // years to break even
+}
+
+export interface InvestorIntelligence {
+  rating: "Strong Buy" | "Buy" | "Hold" | "Avoid";
+  rating_rationale: string;
+  irr_pct: number;              // base-case IRR
+  comparable_irr_pct: number;   // benchmark IRR for comparable infrastructure
+  scenarios: [InvestorScenario, InvestorScenario, InvestorScenario];
+  key_risks: string[];          // up to 3
+  thesis: string;               // 2–3 sentence investment thesis
+  model_used: string;
+  generated_at: string;
 }
 
 // ─── Store / UI State ────────────────────────────────────────────────────────

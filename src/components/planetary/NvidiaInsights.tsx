@@ -1,16 +1,23 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { NimClimateAnalysis, CosmosWorldState, OptimizationResult } from "@/lib/planetary/types";
+import type {
+  NimClimateAnalysis,
+  CosmosWorldState,
+  OptimizationResult,
+  NemotronConfidence,
+} from "@/lib/planetary/types";
 import { fmtNum } from "@/lib/utils";
 
 interface NvidiaInsightsProps {
   nim: NimClimateAnalysis;
   cosmos: CosmosWorldState;
   optimization: OptimizationResult;
+  /** Optional — populated asynchronously by Nemotron after the main pipeline completes */
+  nemotronConfidence?: NemotronConfidence;
 }
 
-export function NvidiaInsights({ nim, cosmos, optimization }: NvidiaInsightsProps) {
+export function NvidiaInsights({ nim, cosmos, optimization, nemotronConfidence }: NvidiaInsightsProps) {
   const year10 = cosmos.year_snapshots.find((s) => s.year === 10);
   const year0 = cosmos.year_snapshots.find((s) => s.year === 0);
   const year5 = cosmos.year_snapshots.find((s) => s.year === 5);
@@ -171,6 +178,89 @@ export function NvidiaInsights({ nim, cosmos, optimization }: NvidiaInsightsProp
           </div>
         </div>
       </div>
+
+      {/* Nemotron Confidence Section — renders only when available */}
+      {nemotronConfidence && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="border-t border-zinc-800 pt-5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-5 h-5 rounded bg-zinc-800 flex items-center justify-center">
+              <span className="text-xs">⚖️</span>
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-zinc-200">Nemotron Peer Review</div>
+              <div className="text-xs text-zinc-500 font-mono">{nemotronConfidence.model_used}</div>
+            </div>
+            <div className="ml-auto text-right">
+              <div
+                className={`text-sm font-bold font-mono ${
+                  nemotronConfidence.label === "High"
+                    ? "text-emerald-400"
+                    : nemotronConfidence.label === "Medium"
+                    ? "text-amber-400"
+                    : "text-red-400"
+                }`}
+              >
+                {nemotronConfidence.label}
+              </div>
+              <div className="text-xs text-zinc-600">
+                {Math.round(nemotronConfidence.score * 100)}% confidence
+              </div>
+            </div>
+          </div>
+
+          {/* Score bar */}
+          <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden mb-3">
+            <motion.div
+              className={`h-full rounded-full ${
+                nemotronConfidence.label === "High"
+                  ? "bg-emerald-500"
+                  : nemotronConfidence.label === "Medium"
+                  ? "bg-amber-500"
+                  : "bg-red-500"
+              }`}
+              initial={{ width: 0 }}
+              animate={{ width: `${nemotronConfidence.score * 100}%` }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+            />
+          </div>
+
+          {/* Dimension breakdown — only when present */}
+          {nemotronConfidence.dimensions && (
+            <div className="space-y-1.5 mb-3">
+              {(
+                [
+                  ["Scientific Accuracy",    nemotronConfidence.dimensions.scientific_accuracy],
+                  ["Internal Consistency",   nemotronConfidence.dimensions.internal_consistency],
+                  ["Regional Specificity",   nemotronConfidence.dimensions.regional_specificity],
+                  ["IPCC Alignment",         nemotronConfidence.dimensions.ipcc_alignment],
+                ] as [string, number][]
+              ).map(([label, val]) => (
+                <div key={label} className="flex items-center gap-2">
+                  <span className="text-xs text-zinc-500 w-36 flex-shrink-0">{label}</span>
+                  <div className="flex-1 h-1 rounded-full bg-zinc-800 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-blue-500/60"
+                      style={{ width: `${val * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-mono text-zinc-400 w-8 text-right">
+                    {Math.round(val * 100)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="text-xs text-zinc-500 leading-relaxed">
+            {nemotronConfidence.reasoning}
+          </p>
+        </motion.div>
+      )}
     </div>
   );
 }
